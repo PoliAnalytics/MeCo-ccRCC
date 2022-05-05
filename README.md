@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------------------------------------
 ABOUT US 🌍
 ---------------------------------------------------------------------------------------------------
-Hi 👋, we are Carlo Manenti👨🏻‍🔬 (Doc in Biotchenology), Paola Maragno👩🏼‍🔬(Doc in Biomolecular Science and Technology), Gabriele Marchi👨🏻‍🔬 (Doc in Biology) and Alberto Pettenella👨🏻‍🔬 (Doc in Bioengineering).
+Hi 👋, we are Carlo Manenti👨🏻‍🔬 (Doc in Biotechnology), Paola Maragno👩🏼‍🔬(Doc in Biomolecular Science and Technology), Gabriele Marchi👨🏻‍🔬 (Doc in Biology) and Alberto Pettenella👨🏻‍🔬 (Doc in Bioengineering).
 Our study focuses on  assessing  the role of mechanotransduction in clear cell Renal Cell Carcinoma (ccRCC) via computing __mechanical conditioning (MeCo) scores__.
 
 

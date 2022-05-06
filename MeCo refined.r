@@ -35,7 +35,7 @@
             metadata
         
         # Performing DGE and taking care of FDR(False Discovery Rate) 🔬
-          # We use DESeq2 to obtain differential expressed genes. We used a threshold of p.adjusted <= 0.01 and log2FC >= |±3|
+          # We use DESeq2 to obtain differential expressed genes. We used a threshold of p.adjusted <= 0.05 and log2FC >= |±2|
           # Opting for such a high FC is needed because we have only 3 replicates for each condition. While the p.adjusted
           # is used for selecting only higly significant differential expressed genes. 
           # Discard all the lines that have at least two cells with 9 or less counts, this will help us with the FDR.
@@ -55,8 +55,8 @@
             
             de <- data.frame(res)
             de$diffexpressed <- "NO"
-            de$diffexpressed[de$log2FoldChange > 3 & de$padj < 0.01] <- "UP"
-            de$diffexpressed[de$log2FoldChange < -3 & de$padj < 0.01] <- "DOWN"
+            de$diffexpressed[de$log2FoldChange > 2 & de$padj < 0.05] <- "UP"
+            de$diffexpressed[de$log2FoldChange < -2 & de$padj < 0.05] <- "DOWN"
 
 
 
@@ -71,8 +71,8 @@
 
         # Polishing the data for later use…            
             dati <- de %>%
-                    mutate(gene_type = case_when(log2FoldChange >= 3 &  padj <= 0.01 ~ "up", 
-                                                log2FoldChange <= -3 &  padj <= 0.01 ~ "down", 
+                    mutate(gene_type = case_when(log2FoldChange >= 2 &  padj <= 0.05 ~ "up", 
+                                                log2FoldChange <= -2 &  padj <= 0.05 ~ "down", 
                                                 TRUE ~ "ns"))   
             count(dati, gene_type)
 

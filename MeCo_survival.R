@@ -170,6 +170,81 @@ survdiff(Surv(time, status)~mecocat, data=surv_data[surv_data$agecat=='young',])
 survdiff(Surv(time, status)~mecocat, data=surv_data[surv_data$agecat=='old',])
 # within the same age group there seems to be no difference in survival based on MeCo
 
+# investigate MeCo_Ant
+hist(surv_data$MeCo_Ant)
+summary(surv_data$MeCo_Ant)
+# cut-off=median(MeCo_Ant)=-0.04365
+surv_data$mecocat_ant <- cut(surv_data$MeCo_Ant, breaks=c(-Inf,-0.04365,Inf), labels=c('Low MeCo_Ant','High MeCo_Ant'))
+fit.mecocat_ant <- survival::survfit(survival::Surv(time,status)~mecocat_ant, data=surv_data)
+summary(fit.mecocat_ant)
+print(fit.mecocat_ant)
+plot(fit.mecocat_ant, conf.int = T, xlab='Time [days]', ylab = 'Survival Probability', main="Kaplan-Meier Curve for ccRCC Cancer Survival based on MeCo_Ant",col=c("blue","green"))
+legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "green"))
+grid()
+# perform Log-Rank test
+survival::survdiff(survival::Surv(time,status)~mecocat_ant, data=surv_data)
+# p=0.7 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+
+# investigate MeCo_Ch
+hist(surv_data$MeCo_Ch)
+summary(surv_data$MeCo_Ch)
+# cut-off=median(MeCo_Ch)=-0.4313
+surv_data$mecocat_Ch <- cut(surv_data$MeCo_Ch, breaks=c(-Inf,-0.4313,Inf), labels=c('Low MeCo_Ch','High MeCo_Ch'))
+fit.mecocat_Ch <- survival::survfit(survival::Surv(time,status)~mecocat_Ch, data=surv_data)
+summary(fit.mecocat_Ch)
+print(fit.mecocat_Ch)
+plot(fit.mecocat_Ch, conf.int = T, xlab='Time [days]', ylab = 'Survival Probability', main="Kaplan-Meier Curve for ccRCC Cancer Survival based on MeCo_Ch",col=c("blue","green"))
+legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "green"))
+grid()
+# perform Log-Rank test
+survival::survdiff(survival::Surv(time,status)~mecocat_Ch, data=surv_data)
+# p=0.8 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+
+# investigate MeCo_ECM
+hist(surv_data$MeCo_ECM)
+summary(surv_data$MeCo_ECM)
+# cut-off=median(MeCo_Ch)=-0.2611
+surv_data$mecocat_ECM <- cut(surv_data$MeCo_ECM, breaks=c(-Inf,-0.2611,Inf), labels=c('Low MeCo_ECM','High MeCo_ECM'))
+fit.mecocat_ECM <- survival::survfit(survival::Surv(time,status)~mecocat_ECM, data=surv_data)
+summary(fit.mecocat_ECM)
+print(fit.mecocat_ECM)
+plot(fit.mecocat_ECM, conf.int = T, xlab='Time [days]', ylab = 'Survival Probability', main="Kaplan-Meier Curve for ccRCC Cancer Survival based on MeCo_ECM",col=c("blue","green"))
+legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "green"))
+grid()
+# perform Log-Rank test
+survival::survdiff(survival::Surv(time,status)~mecocat_ECM, data=surv_data)
+# p=0.5 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+
+# investigate MeCo_Inf
+hist(surv_data$MeCo_Inf)
+summary(surv_data$MeCo_Inf)
+# cut-off=median(MeCo_Ch)=0.6201
+surv_data$mecocat_Inf <- cut(surv_data$MeCo_Inf, breaks=c(-Inf,0.6201,Inf), labels=c('Low MeCo_Inf','High MeCo_Inf'))
+fit.mecocat_Inf <- survival::survfit(survival::Surv(time,status)~mecocat_Inf, data=surv_data)
+summary(fit.mecocat_Inf)
+print(fit.mecocat_Inf)
+plot(fit.mecocat_Inf, conf.int = T, xlab='Time [days]', ylab = 'Survival Probability', main="Kaplan-Meier Curve for ccRCC Cancer Survival based on MeCo_Inf",col=c("blue","green"))
+legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "green"))
+grid()
+# perform Log-Rank test
+survival::survdiff(survival::Surv(time,status)~mecocat_Inf, data=surv_data)
+# p=0.6 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+
+# investigate MeCo_Pro
+hist(surv_data$MeCo_Pro)
+summary(surv_data$MeCo_Pro)
+# cut-off=median(MeCo_Ch)=0.5060
+surv_data$mecocat_Pro <- cut(surv_data$MeCo_Pro, breaks=c(-Inf,0.5060,Inf), labels=c('Low MeCo_Pro','High MeCo_Pro'))
+fit.mecocat_Pro <- survival::survfit(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
+summary(fit.mecocat_Pro)
+print(fit.mecocat_Pro)
+plot(fit.mecocat_Pro, conf.int = T, xlab='Time [days]', ylab = 'Survival Probability', main="Kaplan-Meier Curve for ccRCC Cancer Survival based on MeCo_Pro",col=c("blue","green"))
+legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "green"))
+grid()
+# perform Log-Rank test
+survival::survdiff(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
+# p=0.09 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+
 # In order to better evaluate the relationship between covariates and the role of quantitative predictors, such as MeCo scores
 # now build a multivariate Cox Proportional Hazard model 
 
@@ -210,8 +285,16 @@ standard <- function(x){
   (x-mean(x))/sd(x)
 }
 
-cox.mecoonly2 <- coxph(Surv(time, status)~standard(MeCo_Pro)+standard(MeCo_Ant)+standard(MeCo_Ch)+standard(MeCo_ECM)+standard(MeCo_Inf), data=surv_data)
+cox.mecoonly2 <- survival::coxph(survival::Surv(time, status)~standard(MeCo_Pro)+standard(MeCo_Ant)+standard(MeCo_Ch)+standard(MeCo_ECM)+standard(MeCo_Inf), data=surv_data)
 summary(cox.mecoonly2)
 print(cox.mecoonly2)
 ggforest(cox.mecoonly2, data=surv_data)
 # standardization has narrowed confidence intervals yet no score is showing improved pvalues.
+
+# investigate MeCo_Pro as it is the most promising MeCo score for prediction 
+# based on the previous analysis by KM
+cox.meco_Pro <- survival::coxph(survival::Surv(time, status)~MeCo_Pro, data=surv_data)
+summary(cox.meco_Pro)
+print(cox.meco_Pro)
+ggforest(cox.meco_Pro, data=surv_data)
+# MeCo_Pro appers to be significant at a level of 0.0587

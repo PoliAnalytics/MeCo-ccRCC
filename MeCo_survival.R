@@ -333,8 +333,8 @@ legend('topleft', c("Meco Low", "Meco High"),
        lty=c(1,1), lwd=c(2,2), col=c("deeppink2","dodgerblue2"))
 # curves seem to be parallel: PH assumption holds
 
-# finally, return pvalue of the sclaed Shoenfeld test:
+# finally, return pvalue of the scaled Shoenfeld test:
 # +   $H_0$: Hazards are proportional
 # +   $H_1$: Hazards are NOT proportional
 diag.ph
-# p=0.95, so there is sotrn evidence of proportionality of hazards
+# p=0.95, so there is strong evidence of proportionality of hazards

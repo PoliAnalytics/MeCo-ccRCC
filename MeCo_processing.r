@@ -254,7 +254,7 @@
         # • Antitumoral mechanism 
 
         # Get all the distinct pathways 
-            
+            metascape_result <- read_excel("metascape_result.xlsx") # PLease, insert the name of your file! 
             distinct_pathways <- colnames(metascape_result)[-seq(1, 15)]
             head(distinct_pathways)
 

@@ -376,3 +376,15 @@
 
             summary(MecoScoreAnt)
 -------------------------------------------------------------------------------------------------------------------------------------------
+           # Refining pathways for ECM and Proliferation
+           # REMOVEDE R-HSA elastic fibers & ECM organizations
+           ECM_path <- unique(c(LoL$`M5884 NABA CORE MATRISOME`,
+                                LoL$`GO:0030198 extracellular matrix organizat`, 
+                                LoL$`M5882 NABA PROTEOGLYCANS`, 
+                                LoL$`R-HSA-1474228 Degradation of the extracellul`))
+            
+            # Added MAP kinese                  
+            Proliferation_path <- unique(c(LoL$`GO:0001501 skeletal system development`, 
+                                           LoL$`GO:0061061 muscle structure development`, 
+                                           LoL$`GO:0043410 positive regulation of MAPK ca`))
+            

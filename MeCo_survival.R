@@ -209,7 +209,7 @@ survival::survdiff(survival::Surv(time,status)~mecocat_Ch, data=surv_data)
 hist(surv_data$MeCo_ECM)
 summary(surv_data$MeCo_ECM)
 # cut-off=median(MeCo_Ch)=-0.2611
-surv_data$mecocat_ECM <- cut(surv_data$MeCo_ECM, breaks=c(-Inf,-0.2602,Inf), labels=c('Low MeCo_ECM','High MeCo_ECM'))
+surv_data$mecocat_ECM <- cut(surv_data$MeCo_ECM, breaks=c(-Inf,-0.4419,Inf), labels=c('Low MeCo_ECM','High MeCo_ECM'))
 fit.mecocat_ECM <- survival::survfit(survival::Surv(time,status)~mecocat_ECM, data=surv_data)
 summary(fit.mecocat_ECM)
 print(fit.mecocat_ECM)
@@ -218,7 +218,7 @@ legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "
 grid()
 # perform Log-Rank test
 survival::survdiff(survival::Surv(time,status)~mecocat_ECM, data=surv_data)
-# p=0.5 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+# p=0.5 (0.9 for refined pathway) there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
 
 # investigate MeCo_Inf
 hist(surv_data$MeCo_Inf)
@@ -239,7 +239,7 @@ survival::survdiff(survival::Surv(time,status)~mecocat_Inf, data=surv_data)
 hist(surv_data$MeCo_Pro)
 summary(surv_data$MeCo_Pro)
 # cut-off=median(MeCo_Ch)=0.5060
-surv_data$mecocat_Pro <- cut(surv_data$MeCo_Pro, breaks=c(-Inf,0.5066,Inf), labels=c('Low MeCo_Pro','High MeCo_Pro'))
+surv_data$mecocat_Pro <- cut(surv_data$MeCo_Pro, breaks=c(-Inf,0.6578,Inf), labels=c('Low MeCo_Pro','High MeCo_Pro'))
 fit.mecocat_Pro <- survival::survfit(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
 summary(fit.mecocat_Pro)
 print(fit.mecocat_Pro)
@@ -248,7 +248,7 @@ legend('topright', legend=c('Low MeCo','High MeCo'), lty=c(1,1), col=c("blue", "
 grid()
 # perform Log-Rank test
 survival::survdiff(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
-# p=0.07 there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+# p=0.07 (0.1 for refined pathway) there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
 
 # In order to better evaluate the relationship between covariates and the role of quantitative predictors, such as MeCo scores
 # now build a multivariate Cox Proportional Hazard model 
@@ -276,6 +276,7 @@ print(cox.mecoonly)
 ggforest(cox.mecoonly, data=surv_data)
 # also the refined MeCo scores bear no usefulness in predicting the survival of patients 
 # again note the wide confidence intervals
+# for refined pathways note that Meco_pro is improved and significant for the analysis
 
 # visualize MeCo scores  
 par(mfrow=c(3,2))
@@ -302,7 +303,7 @@ cox.meco_Pro <- survival::coxph(survival::Surv(time, status)~MeCo_Pro, data=surv
 summary(cox.meco_Pro)
 print(cox.meco_Pro)
 ggforest(cox.meco_Pro, data=surv_data)
-# MeCo_Pro appers to be significant at a level of 0.0521
+# MeCo_Pro appers to be significant at a level of 0.0521 (0.036 for refined pathway)
 
 # now verify the assumptions of the cox proportional hazard model 
 
@@ -338,3 +339,5 @@ legend('topleft', c("Meco Low", "Meco High"),
 # +   $H_1$: Hazards are NOT proportional
 diag.ph
 # p=0.95, so there is strong evidence of proportionality of hazards
+
+# note that for refined Proliferation pathway the PH assumptions do not hold anymore

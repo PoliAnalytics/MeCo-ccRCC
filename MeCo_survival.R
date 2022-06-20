@@ -339,5 +339,4 @@ legend('topleft', c("Meco Low", "Meco High"),
 # +   $H_1$: Hazards are NOT proportional
 diag.ph
 # p=0.95, so there is strong evidence of proportionality of hazards
-
-# note that for refined Proliferation pathway the PH assumptions do not hold anymore
+# p=0.81 for the refined pathway

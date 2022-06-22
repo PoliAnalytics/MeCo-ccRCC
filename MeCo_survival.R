@@ -3,6 +3,7 @@ BiocManager::install('survival')
 BiocManager::install('survminer')
 library(survival)
 library(survminer)
+library(ggplot2)
 # set up a dataset with the variables of interest:
 surv_data <- data.frame(sequenced_patients) 
 #age
@@ -93,6 +94,12 @@ grid()
 # perform log rank test
 survdiff(Surv(time, status) ~ stage, data = surv_data) 
 # p<2e-16 there is strong statistical evidence for a difference in the survival of patients at different tumor stages
+ggsurvplot(fit.stage,risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           break.time.by=250,
+           title="Kaplan-Meier Curve for Tumor Stage")
 
 # investigate survival by presence or absence of metastasis
 fit.meta <- survfit(Surv(time, status) ~ metastasis, data = surv_data)
@@ -104,6 +111,12 @@ grid()
 # perform log rank test
 survdiff(Surv(time, status) ~ metastasis, data = surv_data) 
 # p=7e-06 there is strong statistical evidence for a difference in the survival of patients with and without metastasis
+ggsurvplot(fit.meta,risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           break.time.by=250,
+           title="Kaplan-Meier Curve for Metastasis")
 
 # investigate survival by age
 # in order to do so, visualize the distribution of the variable to establish a cut-off point so to categorize the data
@@ -120,6 +133,12 @@ grid()
 # perform Log-Rank test
 survdiff(Surv(time,status)~agecat, data=surv_data)
 # p=4e-04 there is strong statistical evidence for a difference in the survival of younger and older patients 
+ggsurvplot(fit.agecat,risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           break.time.by=250,
+           title="Kaplan-Meier Curve for Age Groups")
 
 # investigate survival by age and sex 
 fit.agecat.sex <- survfit(Surv(time,status)~agecat+gender, data=surv_data)
@@ -239,7 +258,7 @@ survival::survdiff(survival::Surv(time,status)~mecocat_Inf, data=surv_data)
 hist(surv_data$MeCo_Pro)
 summary(surv_data$MeCo_Pro)
 # cut-off=median(MeCo_Ch)=0.5060
-surv_data$mecocat_Pro <- cut(surv_data$MeCo_Pro, breaks=c(-Inf,0.6578,Inf), labels=c('Low MeCo_Pro','High MeCo_Pro'))
+surv_data$mecocat_Pro <- cut(surv_data$MeCo_Pro, breaks=c(-Inf,0.6558,Inf), labels=c('Low MeCo_Pro','High MeCo_Pro'))
 fit.mecocat_Pro <- survival::survfit(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
 summary(fit.mecocat_Pro)
 print(fit.mecocat_Pro)
@@ -249,6 +268,12 @@ grid()
 # perform Log-Rank test
 survival::survdiff(survival::Surv(time,status)~mecocat_Pro, data=surv_data)
 # p=0.07 (0.1 for refined pathway) there is no statistical evidence of a difference in the survival of patients with higher and lower meco scores
+ggsurvplot(fit.mecocat_Pro,risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           break.time.by=250,
+           title="Kaplan-Meier Curve for MeCo Proliferation")
 
 # In order to better evaluate the relationship between covariates and the role of quantitative predictors, such as MeCo scores
 # now build a multivariate Cox Proportional Hazard model 
@@ -268,6 +293,19 @@ print(cox.meco)
 ggforest(cox.meco, data=surv_data)
 # MeCo score appears to be more useful than gender and metastasis in predicting survival, yet it is not particularly significant
 # moreover, the confidence interval for the hazard ratio is the widest
+
+# include other MeCos with only significant covariates according to KM
+cox.meco2<- coxph(Surv(time, status) ~ age+stage+metastasis+MeCo_Pro+MeCo_Ant+MeCo_Ch+MeCo_Inf+MeCo_ECM, data = surv_data)
+summary(cox.meco2)
+print(cox.meco2)
+ggforest(cox.meco2, data=surv_data)
+# only the 'phenotypic' covariates are found to be significant
+
+# include only Meco Proliferation with only significant covariates according to KM
+cox.meco3<- coxph(Surv(time, status) ~ age+stage+metastasis+MeCo_Pro, data = surv_data)
+summary(cox.meco3)
+print(cox.meco3)
+ggforest(cox.meco3, data=surv_data)
 
 # investigate only refined MeCos
 cox.mecoonly <- coxph(Surv(time, status)~MeCo_Pro+MeCo_Ant+MeCo_Ch+MeCo_ECM+MeCo_Inf, data=surv_data)
@@ -339,4 +377,15 @@ legend('topleft', c("Meco Low", "Meco High"),
 # +   $H_1$: Hazards are NOT proportional
 diag.ph
 # p=0.95, so there is strong evidence of proportionality of hazards
-# p=0.81 for the refined pathway
+# p=0.87 for refined pathway
+
+# testing for all other mecos
+cox.meco_ant <- coxph(survival::Surv(time, status)~MeCo_Ant, data=surv_data)
+summary(cox.meco_ant)
+cox.meco_ch <- coxph(survival::Surv(time, status)~MeCo_Ch, data=surv_data)
+summary(cox.meco_ch)
+cox.meco_inf <- coxph(survival::Surv(time, status)~MeCo_Inf, data=surv_data)
+summary(cox.meco_inf)
+cox.meco_ecm <- coxph(survival::Surv(time, status)~MeCo_ECM, data=surv_data)
+summary(cox.meco_ecm)
+# no significant predictors

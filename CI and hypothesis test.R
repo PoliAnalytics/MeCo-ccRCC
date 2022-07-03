@@ -1,631 +1,518 @@
-# set up a dataset with the variables of interest:
-surv_data <- data.frame(pheno_data2$sequenced_patients) 
-#age
-surv_data$age <- pheno_data2$age_at_initial_pathologic_diagnosis
-#time to event
-surv_data$time <- NA
-time_to_death <- pheno_data2$days_to_death.demographic
-time_to_last_FU <- pheno_data2$days_to_last_follow_up.diagnoses
-
-for (i in 1:length(sequenced_patients)){
-  if (is.na(time_to_death[i]))
-    surv_data$time[i] <- time_to_last_FU[i]
-  else
-    surv_data$time[i] <- time_to_death[i]
-}
-
-#status
-surv_data$status <- as.numeric(as.factor(pheno_data$vital_status.demographic)) # 1 = patient alive, 2 = patient dead
-#metastasis
-surv_data$metastasis <- NA
-meta <- pheno_data$additional_surgery_metastatic_procedure
-
-for (i in 1:length(sequenced_patients)){
-  if (meta[i]=="")
-    surv_data$metastasis[i] <- 'NO'
-  else
-    surv_data$metastasis[i] <- 'YES'
-}
-surv_data$metastasis <- as.factor(surv_data$metastasis)
-#sex
-surv_data$gender <- as.factor(pheno_data$gender.demographic)
-#tumor stage
-surv_data$stage <- as.factor(pheno_data$tumor_stage.diagnoses)
-# MeCo scores
-surv_data$MeCo <- MecoScore$MeSc
-surv_data$MeCo_Ant <- MecoScoreAnt$MeSc
-surv_data$MeCo_Ch <- MecoScoreCh$MeSc
-surv_data$MeCo_ECM <- MecoScoreECM$MeSc
-surv_data$MeCo_Inf <- MecoScoreInf$MeSc
-surv_data$MeCo_Pro <- MecoScorePro$MeSc
-# laterality
-surv_data$laterality <- as.factor(pheno_data$laterality)
-
 attach(surv_data)
 
+# FIRST HYPOTHESIS TES: test, for each type of MeCo score, if it increases with age
 
-
-# test , for each type of meco score, if it increases with age
-
-# general meco
+# general MeCo score
 df <- data.frame(age=surv_data$age,MeCo)
 summary(age)
 age_old <- df$age[which(df$age>61)]
 age_young <- df$age[which(df$age<=61)]
 meco_old <- df$MeCo[which(df$age>61)]
 meco_young <- df$MeCo[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
+shapiro.test(meco_old)
+shapiro.test(meco_young)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_old,meco_young,names = c('old','young'), main = ('MeCo distribution in young and old people'))
 plot(age_old,meco_old)
 plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
 
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# equal variance 
-
-# they are normal with same unknown variance -> t test using the pooled variance
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-s2.pooled=((length(meco_old)-1)*sd(meco_old)^2+(length(meco_young)-1)*sd(meco_young)^2)/(length(meco_old)+length(meco_young)-2)
-s2.pooled
-
-t.test(meco_old,meco_young,mu=0,paired=FALSE,var.equal=TRUE,alternative='two.sided')
-# significantly different mean 
-t.test(meco_old,meco_young,mu=0,paired=FALSE,var.equal=TRUE,alternative='greater')
-# old people have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI of the difference
-
-t <- qt(0.025,length(meco_old)+length(meco_young)-2, lower.tail = F)
-CI_MeCo_age <- c((mean_mecoold-mean_mecoy)-t*sqrt(s2.pooled) , (mean_mecoold-mean_mecoy)+t*sqrt(s2.pooled))
-CI_MeCo_age
+# H0: No tendency of MeCo score depending on the age
+# H1: Tendency of some type of MeCo score depending on the age
+wilcox.test(meco_old, meco_young, paired=F, alternative='two.sided', conf.int = T)
+# 0.0003 -> significant difference
+# CI: 0.01092387 0.03632707
+wilcox.test(meco_old, meco_young, paired=F, alternative='greater', conf.int = T)
+# 0.0001 ->  old people have higher MeCo
+# 0.01302886        Inf
 
 
-# meco ant
-df <- data.frame(age= surv_data$age,MeCo_Ant)
-summary(age)
+# MeCo regulation
+df <- data.frame(age= surv_data$age,MeCo_reg)
 age_old <- df$age[which(df$age>61)]
 age_young <- df$age[which(df$age<=61)]
-meco_old <- df$MeSc_Ant[which(df$age>61)]
-meco_young <- df$MeSc_Ant[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
+meco_old <- df$MeCo_reg[which(df$age>61)]
+meco_young <- df$MeCo_reg[which(df$age<=61)]
+shapiro.test(meco_old)
+shapiro.test(meco_young)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_old,meco_young,names = c('old','young'), main = ('MeCo regulation distribution in young and old people'))
 plot(age_old,meco_old)
 plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
 
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# different variance 
-
-# they are normal with different unknown variance -> z test using the sample variances
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-library(BSDA)
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='two.sided')
-# significantly different mean 
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='greater')
-# old people have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoAnt_age <- c((mean_mecoold-mean_mecoy)-z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))),(mean_mecoold-mean_mecoy)+z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))))
-CI_MeCoAnt_age
+# H0: No tendency of MeCo regulation score depending on the age
+# H1: Tendency of some type of MeCo regulation score depending on the age
+wilcox.test(meco_old, meco_young, paired=F, alternative='two.sided', conf.int = T)
+# 0.013 -> significant difference
+# CI: 0.004560885 0.038791022
+wilcox.test(meco_old, meco_young, paired=F, alternative='greater', conf.int = T)
+# 0.007 ->  old people have higher MeCo regulation
+# 0.007327603        Inf
 
 
-# meco ch
-df <- data.frame(age = surv_data$age,MeCo_Ch)
-summary(age)
+# MeCo stimulus
+df <- data.frame(age = surv_data$age,MeCo_st)
 age_old <- df$age[which(df$age>61)]
 age_young <- df$age[which(df$age<=61)]
-meco_old <- df$MeCo_Ch[which(df$age>61)]
-meco_young <- df$MeCo_Ch[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
+meco_old <- df$MeCo_st[which(df$age>61)]
+meco_young <- df$MeCo_st[which(df$age<=61)]
+shapiro.test(meco_old)
+shapiro.test(meco_young)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_old,meco_young,names = c('old','young'),main='MeCo stimulus distribution in young and old people')
 plot(age_old,meco_old)
 plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
 
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# different variance 
-
-# they are normal with different unknown variance -> z test using the sample variances
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='two.sided')
-# significantly different mean 
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='greater')
-# old people have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoCh_age <- c((mean_mecoold-mean_mecoy)-z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))),(mean_mecoold-mean_mecoy)+z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))))
-CI_MeCoCh_age
+# H0: No tendency of MeCo stimulus score depending on the age
+# H1: Tendency of some type of MeCo stimulus score depending on the age
+wilcox.test(meco_old, meco_young, paired=F, alternative='two.sided', conf.int = T)
+# 0.0001 -> significant difference
+# CI:  0.01649375 0.04945930
+wilcox.test(meco_old, meco_young, paired=F, alternative='greater', conf.int = T)
+# 0.00007 ->  old people have higher MeCo stimulus
+# 0.01925956         Inf
 
 
-# meco ECM
-df <- data.frame(age = surv_data$age,MeCo_ECM)
-summary(age)
+# MeCo development
+df <- data.frame(age = surv_data$age,MeCo_dev)
 age_old <- df$age[which(df$age>61)]
 age_young <- df$age[which(df$age<=61)]
-meco_old <- df$MeCo_ECM[which(df$age>61)]
-meco_young <- df$MeCo_ECM[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
+meco_old <- df$MeCo_dev[which(df$age>61)]
+meco_young <- df$MeCo_dev[which(df$age<=61)]
+shapiro.test(meco_old)
+shapiro.test(meco_young)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_old,meco_young,names = c('old','young'), main='MeCo development distribution in young and old people')
 plot(age_old,meco_old)
 plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
 
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# different variance 
-
-# they are normal with different unknown variance -> z test using the sample variances
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='two.sided')
-# p.value 0.13 -> not significantly different mean 
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='greater')
-# p-value 0.06 -> old people don't have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoECM_age <- c((mean_mecoold-mean_mecoy)-z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))),(mean_mecoold-mean_mecoy)+z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))))
-CI_MeCoECM_age
-
-
-# meco Inf
-df <- data.frame(age = surv_data$age,MeCo_Inf)
-summary(age)
-age_old <- df$age[which(df$age>61)]
-age_young <- df$age[which(df$age<=61)]
-meco_old <- df$MeCo_Inf[which(df$age>61)]
-meco_young <- df$MeCo_Inf[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
-plot(age_old,meco_old)
-plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
-
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# different variance 
-
-# they are normal with different unknown variance -> z test using the sample variances
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='two.sided')
-# significantly different mean 
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='greater')
-# old people have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoInf_age <- c((mean_mecoold-mean_mecoy)-z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))),(mean_mecoold-mean_mecoy)+z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))))
-CI_MeCoInf_age
-
-
-# meco Pro
-df <- data.frame(age = surv_data$age,MeCo_Pro)
-summary(age)
-age_old <- df$age[which(df$age>61)]
-age_young <- df$age[which(df$age<=61)]
-meco_old <- df$MeCo_Pro[which(df$age>61)]
-meco_young <- df$MeCo_Pro[which(df$age<=61)]
-boxplot(meco_old,meco_young,names = c('old','young'))
-plot(age_old,meco_old)
-plot(age_young,meco_young)
-mean_mecoold <- mean(meco_old)
-mean_mecoy <- mean(meco_young)
-
-# number of observations is high -> x1 and x2 are normal 
-var.test(meco_old,meco_young)
-# different variance 
-
-# they are normal with different unknown variance -> z test using the sample variances
-
-# H0 -> mu_old = mu_young
-# H1 -> mu_old > mu_young
-
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='two.sided')
-# significantly different mean 
-z.test(meco_old,meco_young,mu=0,sigma.x = sd(meco_old),sigma.y = sd(meco_young),alternative='greater')
-# old people have higher meco
-
-plot(age_old,meco_old, xlim=c(0,100))
-points(age_young,meco_young, col = "green")
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_age <- c((mean_mecoold-mean_mecoy)-z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))),(mean_mecoold-mean_mecoy)+z*sqrt((sd(meco_old)**2/length(meco_old))+(sd(meco_young)**2/length(meco_young))))
-CI_MeCoPro_age
+# H0: No tendency of MeCo development score depending on the age
+# H1: Tendency of some type of MeCo development score depending on the age
+wilcox.test(meco_old, meco_young, paired=F, alternative='two.sided', conf.int = T)
+# 0.0004 -> significant difference
+# CI:  0.01303680 0.04421459
+wilcox.test(meco_old, meco_young, paired=F, alternative='greater', conf.int = T)
+# 0.0002 ->  old people have higher MeCo development
+# 0.01551131         Inf
 
 
 
-# meco decreases as stage increases
+# SECOND HYPOTHESIS TEST: test whether each MeCo type decreases as stage increases
 
-# meco general 
-
-df2 <- data.frame(MeCo,stage)
+# MeCo general 
+df2 <- data.frame(MeCo=surv_data$MeCo,stage=surv_data$stage)
 meco_1 <- df2$MeCo[which(df2$stage =='stage i')]
 meco_2 <- df2$MeCo[which(df2$stage =='stage ii')]
 meco_3 <- df2$MeCo[which(df2$stage =='stage iii')]
 meco_4 <- df2$MeCo[which(df2$stage =='stage iv')]
-boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'))
+shapiro.test(meco_1)
+# p-value is high so this variable is normally distributed
+shapiro.test(meco_2)
+shapiro.test(meco_3)
+shapiro.test(meco_4)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'), main='MeCo distribution in the different stages')
+
+# H0: No tendency of MeCo score depending on the stage
+# H1: Tendency of some type of MeCo score depending on the stage
+wilcox.test(meco_1, meco_2, paired=F, alternative='two.sided', conf.int = T)
+# 0.4 -> no significant difference
+wilcox.test(meco_1, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.2 -> no significant difference
+wilcox.test(meco_1, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.18 -> no significant difference
+
+wilcox.test(meco_2, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.1 -> no significant difference
+wilcox.test(meco_2, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.14 -> no significant difference
+
+wilcox.test(meco_3, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.8 -> no significant difference
+
+
+# MeCo regulation
+df2 <- data.frame(MeCo_reg=surv_data$MeCo_reg,stage=surv_data$stage)
+meco_1 <- df2$MeCo_reg[which(df2$stage =='stage i')]
+meco_2 <- df2$MeCo_reg[which(df2$stage =='stage ii')]
+meco_3 <- df2$MeCo_reg[which(df2$stage =='stage iii')]
+meco_4 <- df2$MeCo_reg[which(df2$stage =='stage iv')]
+shapiro.test(meco_1)
+shapiro.test(meco_2)
+# p-value are high so these variables are normally distributed
+shapiro.test(meco_3)
+shapiro.test(meco_4)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'),  main='MeCo regulation distribution in the different stages')
 
 var.test(meco_1,meco_2)
 # different variance -> z test
 
+# HO: there is no difference between the mean MeCo regulation score between people of stage 1 and 2
+# HO: there is difference between the mean MeCo regulation score between people of stage 1 and 2
 z.test(meco_1,meco_2,mu=0,sigma.x = sd(meco_1),sigma.y = sd(meco_2),alternative='two.sided')
-# significantly different mean 
-z.test(meco_1,meco_2,mu=0,sigma.x = sd(meco_1),sigma.y = sd(meco_2),alternative='less')
-# people of stage 1 have a lower general meco score than people of stage 2
+# 0.9 -> not significantly different mean 
 
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_stage12 <- c((mean(meco_1)-mean(meco_2))-z*sqrt((sd(meco_1)**2/length(meco_1))+(sd(meco_2)**2/length(meco_2))),(mean(meco_1)-mean(meco_2))+z*sqrt((sd(meco_1)**2/length(meco_1))+(sd(meco_2)**2/length(meco_2))))
-CI_MeCo_stage12
+# H0: No tendency of MeCo regulation score depending on the stage
+# H1: Tendency of some type of MeCo regulation score depending on the stage
+wilcox.test(meco_1, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.0007 -> significant difference
+# ci: 0.01511899 0.05561281
+wilcox.test(meco_1, meco_3, paired=F, alternative='greater', conf.int = T)
+# 0.0004 -> MeCo regulation is higher in stage 1 than stage 3
+#  0.01852165        Inf
+wilcox.test(meco_1, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 9.527e-05 -> significant difference
+# ci: 0.02585632 0.07489848
+wilcox.test(meco_1, meco_4, paired=F, alternative='greater', conf.int = T)
+# 4.764e-05 -> MeCo regulation is higher in stage 1 than stage 4
+# ci: 0.02958501        Inf
 
-
-var.test(meco_3,meco_2)
-# different variance -> z test
-
-z.test(meco_2,meco_3,mu=0,sigma.x = sd(meco_2),sigma.y = sd(meco_3),alternative='two.sided')
-# not significantly different mean 
-z.test(meco_2,meco_3,mu=0,sigma.x = sd(meco_2),sigma.y = sd(meco_3),alternative='less')
-# people of stage 2 don't have a lower general meco score than people of stage 3
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_stage23 <- c((mean(meco_2)-mean(meco_3))-z*sqrt((sd(meco_2)**2/length(meco_2))+(sd(meco_3)**2/length(meco_3))),(mean(meco_2)-mean(meco_3))+z*sqrt((sd(meco_2)**2/length(meco_2))+(sd(meco_3)**2/length(meco_3))))
-CI_MeCo_stage23
-
-
-
-var.test(meco_3,meco_4)
-# different variance -> z test
-
-z.test(meco_3,meco_4,mu=0,sigma.x = sd(meco_3),sigma.y = sd(meco_4),alternative='two.sided')
-# significantly different mean 
-z.test(meco_3,meco_4,mu=0,sigma.x = sd(meco_3),sigma.y = sd(meco_4),alternative='less')
-# people of stage 3 have a lower general meco score than people of stage 4
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_stage34 <- c((mean(meco_3)-mean(meco_4))-z*sqrt((sd(meco_3)**2/length(meco_3))+(sd(meco_4)**2/length(meco_4))),(mean(meco_3)-mean(meco_4))+z*sqrt((sd(meco_3)**2/length(meco_3))+(sd(meco_4)**2/length(meco_4))))
-CI_MeCo_stage34
+wilcox.test(meco_2, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.03 ->  significant difference
+# ci: 0.001765502 0.066255799
+wilcox.test(meco_2, meco_3, paired=F, alternative='greater', conf.int = T)
+# 0.019 -> MeCo regulation is higher in stage 2 than stage 3
+# ci: 0.007487142         Inf
+wilcox.test(meco_2, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.009 -> significant difference
+#  0.01265027 0.08624226
+wilcox.test(meco_2, meco_4, paired=F, alternative='greater', conf.int = T)
+# 0.004 -> MeCo regulation is higher in stage 2 than stage 4
+# 0.01891998        Inf
+wilcox.test(meco_3, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.27 -> no significant difference
 
 
+# MeCo stimulus
+df2 <- data.frame(MeCo_st=surv_data$MeCo_st,stage=surv_data$stage)
+meco_1 <- df2$MeCo_st[which(df2$stage =='stage i')]
+meco_2 <- df2$MeCo_st[which(df2$stage =='stage ii')]
+meco_3 <- df2$MeCo_st[which(df2$stage =='stage iii')]
+meco_4 <- df2$MeCo_st[which(df2$stage =='stage iv')]
+shapiro.test(meco_1)
+shapiro.test(meco_2)
+# p-value are high so these variables are normally distributed
+shapiro.test(meco_3)
+shapiro.test(meco_4)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-# meco pro 
-
-df2 <- data.frame(MeCo_Pro,stage)
-meco_1 <- df2$MeCo_Pro[which(df2$stage =='stage i')]
-meco_2 <- df2$MeCo_Pro[which(df2$stage =='stage ii')]
-meco_3 <- df2$MeCo_Pro[which(df2$stage =='stage iii')]
-meco_4 <- df2$MeCo_Pro[which(df2$stage =='stage iv')]
-boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'))
+boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'),  main='MeCo stimulus distribution in the different stages')
 
 var.test(meco_1,meco_2)
-# different variance -> z test
+# same variance -> t-test
 
-z.test(meco_1,meco_2,mu=0,sigma.x = sd(meco_1),sigma.y = sd(meco_2),alternative='two.sided')
-# significantly different mean 
-z.test(meco_1,meco_2,mu=0,sigma.x = sd(meco_1),sigma.y = sd(meco_2),alternative='less')
-# people of stage 1 have a lower meco_pro score than people of stage 2
+# HO: there is no difference between the mean MeCo stimulus score between people of stage 1 and 2
+# HO: there is difference between the mean MeCo stimulus score between people of stage 1 and 2
+s2.pooled=((length(meco_1)-1)*sd(meco_1)^2+(length(meco_2)-1)*sd(meco_2)^2)/(length(meco_1)+length(meco_2)-2)
+s2.pooled
 
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_stage12 <- c((mean(meco_1)-mean(meco_2))-z*sqrt((sd(meco_1)**2/length(meco_1))+(sd(meco_2)**2/length(meco_2))),(mean(meco_1)-mean(meco_2))+z*sqrt((sd(meco_1)**2/length(meco_1))+(sd(meco_2)**2/length(meco_2))))
-CI_MeCoPro_stage12
+t.test(meco_1,meco_2,mu=0,paired=FALSE,var.equal=TRUE,alternative='two.sided')
+# 0.9 -> not significantly different mean 
 
+# H0: No tendency of MeCo stimulus score depending on the stage
+# H1: Tendency of some type of MeCo stimulus score depending on the stage
+wilcox.test(meco_1, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.006 -> significant difference
+# ci: 0.008434417 0.049883093
+wilcox.test(meco_1, meco_3, paired=F, alternative='greater', conf.int = T)
+# 0.003 -> MeCo stimulus score is greater in stage 1 than stage 3
+#  0.01177697         Inf
+wilcox.test(meco_1, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.1 -> no significant difference
 
+wilcox.test(meco_2, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.046 ->  significant difference
+# ci: 0.0003593156 0.0611257491
+wilcox.test(meco_2, meco_3, paired=F, alternative='greater', conf.int = T)
+# 0.023 -> MeCo stimulus score is greater in stage 2 than stage 3
+# ci: 0.005343695         Inf
+wilcox.test(meco_2, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.2 -> no significant difference
 
-var.test(meco_3,meco_2)
-# different variance -> z test
-
-z.test(meco_2,meco_3,mu=0,sigma.x = sd(meco_2),sigma.y = sd(meco_3),alternative='two.sided')
-#  significantly different mean 
-z.test(meco_2,meco_3,mu=0,sigma.x = sd(meco_2),sigma.y = sd(meco_3),alternative='greater')
-# people of stage 2 have a higher meco_pro score than people of stage 3
-
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_stage23 <- c((mean(meco_2)-mean(meco_3))-z*sqrt((sd(meco_2)**2/length(meco_2))+(sd(meco_3)**2/length(meco_3))),(mean(meco_2)-mean(meco_3))+z*sqrt((sd(meco_2)**2/length(meco_2))+(sd(meco_3)**2/length(meco_3))))
-CI_MeCoPro_stage23
-
-
-var.test(meco_3,meco_4)
-# different variance -> z test
-
-z.test(meco_3,meco_4,mu=0,sigma.x = sd(meco_3),sigma.y = sd(meco_4),alternative='two.sided')
-# not significantly different mean 
-z.test(meco_3,meco_4,mu=0,sigma.x = sd(meco_3),sigma.y = sd(meco_4),alternative='less')
-# people of stage 3 don't have a lower meco_pro score than people of stage 4
-
-# CI difference 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_stage34 <- c((mean(meco_3)-mean(meco_4))-z*sqrt((sd(meco_3)**2/length(meco_3))+(sd(meco_4)**2/length(meco_4))),(mean(meco_3)-mean(meco_4))+z*sqrt((sd(meco_3)**2/length(meco_3))+(sd(meco_4)**2/length(meco_4))))
-CI_MeCoPro_stage34
+wilcox.test(meco_3, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.6 -> no significant difference
 
 
-# meco score in alive people is lower than in dead
+# MeCo development
+df2 <- data.frame(MeCo_dev=surv_data$MeCo_dev,stage=surv_data$stage)
+meco_1 <- df2$MeCo_dev[which(df2$stage =='stage i')]
+meco_2 <- df2$MeCo_dev[which(df2$stage =='stage ii')]
+meco_3 <- df2$MeCo_dev[which(df2$stage =='stage iii')]
+meco_4 <- df2$MeCo_dev[which(df2$stage =='stage iv')]
+shapiro.test(meco_1)
+shapiro.test(meco_2)
+# p-value are high so these variables are normally distributed
+shapiro.test(meco_3)
+shapiro.test(meco_4)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-# general meco
+boxplot(meco_1*100,meco_2*100,meco_3*100,meco_4*100, names = c('stage1','stage2','stage3','stage4'),  main='MeCo development distribution in the different stages')
 
+var.test(meco_1,meco_2)
+# same variance -> t-test
+
+# HO: there is no difference between the mean MeCo development score between people of stage 1 and 2
+# HO: there is difference between the mean MeCo development score between people of stage 1 and 2
+s2.pooled=((length(meco_1)-1)*sd(meco_1)^2+(length(meco_2)-1)*sd(meco_2)^2)/(length(meco_1)+length(meco_2)-2)
+s2.pooled
+
+t.test(meco_1,meco_2,mu=0,paired=FALSE,var.equal=TRUE,alternative='two.sided')
+# 0.87 -> not significantly different mean 
+
+# H0: No tendency of MeCo development score depending on the stage
+# H1: Tendency of some type of MeCo development score depending on the stage
+wilcox.test(meco_1, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.089 -> no significant difference
+wilcox.test(meco_1, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.5 -> no significant difference
+
+wilcox.test(meco_2, meco_3, paired=F, alternative='two.sided', conf.int = T)
+# 0.3 ->  no significant difference
+wilcox.test(meco_2, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.6 -> no significant difference
+
+wilcox.test(meco_3, meco_4, paired=F, alternative='two.sided', conf.int = T)
+# 0.5 -> no significant difference
+
+
+
+# THIRD HYPOTHESIS TEST: Test whether each type of MeCo score is higher in alive people than in dead ones
+
+# general MeCo
 df3 <- data.frame(MeCo,status)
-meco_alive <- df3$MeCo[which(df3$status == 1)]
-meco_dead <- df3$MeCo[which(df3$status == 2)]
-boxplot(meco_alive, meco_dead, names = c('alive','dead'))
+meco_alive <- df3$MeCo[which(df3$status == 0)]
+meco_dead <- df3$MeCo[which(df3$status == 1)]
+shapiro.test(meco_alive)
+shapiro.test(meco_dead)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-var.test(meco_alive,meco_dead)
-# different variance
+boxplot(meco_alive, meco_dead, names = c('alive','dead'), main='MeCo distribution in alive and dead people')
 
-z.test(meco_dead, meco_alive,mu=0,sigma.x = sd(meco_dead),sigma.y = sd(meco_alive),alternative='two.sided')
-# significantly different mean 
-z.test(meco_dead, meco_alive,mu=0,sigma.x = sd(meco_dead),sigma.y = sd(meco_alive),alternative='greater')
-# dead people have a greater general meco score than alive people
-
-# CI difference
- 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_status <- c((mean(meco_dead)-mean(meco_alive))-z*sqrt((sd(meco_dead)**2/length(meco_dead))+(sd(meco_alive)**2/length(meco_alive))),(mean(meco_dead)-mean(meco_alive))+z*sqrt((sd(meco_dead)**2/length(meco_dead))+(sd(meco_alive)**2/length(meco_alive))))
-CI_MeCo_status
+# H0: No tendency of MeCo score depending on the status
+# H1: Tendency of some type of MeCo score depending on the status
+wilcox.test(meco_alive, meco_dead, paired=F, alternative='two.sided', conf.int = T)
+# 0.16 -> no significant difference
 
 
+# MeCo regulation
+df3 <- data.frame(MeCo_reg,status)
+meco_alive <- df3$MeCo_reg[which(df3$status == 0)]
+meco_dead <- df3$MeCo_reg[which(df3$status == 1)]
+shapiro.test(meco_alive)
+# this variable is normally distributed
+shapiro.test(meco_dead)
+# this variable is not normally distributed 
 
-# meco pro
+boxplot(meco_alive, meco_dead, names = c('alive','dead'), main='MeCo regulation distribution in alive and dead people')
 
-df3 <- data.frame(MeCo_Pro,status)
-meco_alive <- df3$MeCo_Pro[which(df3$status == 1)]
-meco_dead <- df3$MeCo_Pro[which(df3$status == 2)]
-boxplot(meco_alive, meco_dead, names = c('alive','dead'))
+# H0: No tendency of MeCo regulation score depending on the status
+# H1: Tendency of some type of MeCo regulation score depending on the status
+wilcox.test(meco_alive, meco_dead, paired=F, alternative='two.sided', conf.int = T)
+# 0.0035 -> significant difference
+# ci:  0.008864337 0.045091981
+wilcox.test(meco_alive, meco_dead, paired=F, alternative='greater', conf.int = T)
+# 0.002 -> MeCo regulation is higher in alive people than in dead ones
+#ci: 0.01179347        Inf
 
-var.test(meco_alive,meco_dead)
-# different variance
+# MeCo stimulus
+df4 <- data.frame(MeCo_st,status)
+meco_alive <- df4$MeCo_st[which(df4$status == 0)]
+meco_dead <- df4$MeCo_st[which(df4$status == 1)]
+shapiro.test(meco_alive)
+# this variable is normally distributed
+shapiro.test(meco_dead)
+# this variable is not normally distributed 
 
-z.test(meco_dead, meco_alive,mu=0,sigma.x = sd(meco_dead),sigma.y = sd(meco_alive),alternative='two.sided')
-# significantly different mean 
-z.test(meco_dead, meco_alive,mu=0,sigma.x = sd(meco_dead),sigma.y = sd(meco_alive),alternative='greater')
-# dead people have a greater meco_pro score than alive people
+boxplot(meco_alive, meco_dead, names = c('alive','dead'), main='MeCo stimulus distribution in alive and dead people')
 
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_status <- c((mean(meco_dead)-mean(meco_alive))-z*sqrt((sd(meco_dead)**2/length(meco_dead))+(sd(meco_alive)**2/length(meco_alive))),(mean(meco_dead)-mean(meco_alive))+z*sqrt((sd(meco_dead)**2/length(meco_dead))+(sd(meco_alive)**2/length(meco_alive))))
-CI_MeCoPro_status
+# H0: No tendency of MeCo stimulus score depending on the status
+# H1: Tendency of some type of MeCo stimulus score depending on the status
+wilcox.test(meco_alive, meco_dead, paired=F, alternative='two.sided', conf.int = T)
+# 0.12  -> no significant difference
 
 
-# difference of meco in the two sexs
+# MeCo development
+df3 <- data.frame(MeCo_dev,status)
+meco_alive <- df3$MeCo_dev[which(df3$status == 0)]
+meco_dead <- df3$MeCo_dev[which(df3$status == 1)]
+shapiro.test(meco_alive)
+# this variable is normally distributed
+shapiro.test(meco_dead)
+# this variable is not normally distributed
 
-# general meco
+boxplot(meco_alive, meco_dead, names = c('alive','dead'), main='MeCo development distribution in alive and dead people')
 
+# H0: No tendency of MeCo development score depending on the status
+# H1: Tendency of some type of MeCo development score depending on the status
+wilcox.test(meco_alive, meco_dead, paired=F, alternative='two.sided', conf.int = T)
+# 0.5 -> no significant difference
+
+
+
+# FOURTH HYPOTHESIS TEST: Test for each type of MeCo score whether it has a different level in the two sexes
+
+# general MeCo
 df4 <- data.frame(MeCo,gender)
 meco_female <- df4$MeCo[which(df4$gender =='female')]
 meco_male <- df4$MeCo[which(df4$gender =='male')]
-boxplot(meco_female, meco_male, names = c('female','male'))
+shapiro.test(meco_female)
+shapiro.test(meco_male)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-var.test(meco_female,meco_male)
-# different variance
+boxplot(meco_female, meco_male, names = c('female','male'), main='MeCo distribution by gender')
 
-z.test(meco_female, meco_male,mu=0,sigma.x = sd(meco_female),sigma.y = sd(meco_male),alternative='two.sided')
-# significantly different mean 
-z.test(meco_female, meco_male,mu=0,sigma.x = sd(meco_female),sigma.y = sd(meco_male),alternative='less')
-# female people have a lower general meco score than male
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_gender <- c((mean(meco_male)-mean(meco_female))-z*sqrt((sd(meco_male)**2/length(meco_male))+(sd(meco_female)**2/length(meco_female))),(mean(meco_male)-mean(meco_female))+z*sqrt((sd(meco_male)**2/length(meco_male))+(sd(meco_female)**2/length(meco_female))))
-CI_MeCo_gender
-
-# meco Pro
-
-df4 <- data.frame(MeCo_Pro,gender)
-meco_female <- df4$MeCo_Pro[which(df4$gender =='female')]
-meco_male <- df4$MeCo_Pro[which(df4$gender =='male')]
-boxplot(meco_female, meco_male, names = c('female','male'))
-
-var.test(meco_female,meco_male)
-# different variance
-
-z.test(meco_female, meco_male,mu=0,sigma.x = sd(meco_female),sigma.y = sd(meco_male),alternative='two.sided')
-# significantly different mean 
-z.test(meco_female, meco_male,mu=0,sigma.x = sd(meco_female),sigma.y = sd(meco_male),alternative='less')
-# female people have a lower general meco score than male
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_gender <- c((mean(meco_male)-mean(meco_female))-z*sqrt((sd(meco_male)**2/length(meco_male))+(sd(meco_female)**2/length(meco_female))),(mean(meco_male)-mean(meco_female))+z*sqrt((sd(meco_male)**2/length(meco_male))+(sd(meco_female)**2/length(meco_female))))
-CI_MeCoPro_gender
+# H0: No tendency of MeCo score depending on the gender
+# H1: Tendency of some type of MeCo score depending on the gender
+wilcox.test(meco_female, meco_male, paired=F, alternative='two.sided', conf.int = T)
+# 0.03 -> statistical difference
+# ci:  0.001195015 0.027812322
+wilcox.test(meco_female, meco_male, paired=F, alternative='greater', conf.int = T)
+# 0.017 -> MeCo is higher in female
+# ci: 0.003274702         Inf
 
 
-# meco and laterality of the tumor
+# MeCo regulation
+df4 <- data.frame(MeCo_reg,gender)
+meco_female <- df4$MeCo_reg[which(df4$gender =='female')]
+meco_male <- df4$MeCo_reg[which(df4$gender =='male')]
+shapiro.test(meco_female)
+shapiro.test(meco_male)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-# general meco
+boxplot(meco_female, meco_male, names = c('female','male'), main='MeCo regulation distribution by gender')
+
+# H0: No tendency of MeCo regulation score depending on the gender
+# H1: Tendency of some type of MeCo regulation score depending on the gender
+wilcox.test(meco_female, meco_male, paired=F, alternative='two.sided', conf.int = T)
+# 1.23e-05 -> significant difference
+# ci:  0.02239838 0.05730498
+wilcox.test(meco_female, meco_male, paired=F, alternative='greater', conf.int = T)
+# 6.152e-06 -> MeCo regulation is higher in female
+# ci: 0.0252336         Inf
+
+# MeCo stimulus
+df4 <- data.frame(MeCo_st,gender)
+meco_female <- df4$MeCo_st[which(df4$gender =='female')]
+meco_male <- df4$MeCo_st[which(df4$gender =='male')]
+shapiro.test(meco_female)
+shapiro.test(meco_male)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_female, meco_male, names = c('female','male'), main='MeCo stimulus distribution by gender')
+
+# H0: No tendency of MeCo stimulus score depending on the gender
+# H1: Tendency of some type of MeCo regulation score depending on the gender
+wilcox.test(meco_female, meco_male, paired=F, alternative='two.sided', conf.int = T)
+# 0.00017 -> significant difference
+# ci:  0.01647529 0.05265989
+wilcox.test(meco_female, meco_male, paired=F, alternative='greater', conf.int = T)
+# 8.44e-05 -> MeCo stimulus is higher in female
+# ci: 0.01939692          Inf
+
+# MeCo development
+df4 <- data.frame(MeCo_dev,gender)
+meco_female <- df4$MeCo_dev[which(df4$gender =='female')]
+meco_male <- df4$MeCo_dev[which(df4$gender =='male')]
+shapiro.test(meco_female)
+shapiro.test(meco_male)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
+
+boxplot(meco_female, meco_male, names = c('female','male'), main='MeCo development distribution by gender')
+
+# H0: No tendency of MeCo development score depending on the gender
+# H1: Tendency of some type of MeCo development score depending on the gender
+wilcox.test(meco_female, meco_male, paired=F, alternative='two.sided', conf.int = T)
+# 0.007 -> significant difference
+# ci:  0.006276724 0.038185415
+wilcox.test(meco_female, meco_male, paired=F, alternative='greater', conf.int = T)
+# 0.003338 -> MeCo development is higher in female
+# ci: 0.008859827          Inf
+
+
+
+# FIFTH HYPOTHESIS TEST: Test, for each type of MeCO score, whether it changes depending on the laterality of the tumor
+
+# general MeCo
 df5 <- data.frame(MeCo,laterality)
-meco_bilateral <- df5$MeCo[which(df5$laterality =='Bilateral')]
 meco_left <- df5$MeCo[which(df5$laterality =='Left')]
 meco_right <- df5$MeCo[which(df5$laterality =='Right')]
-boxplot(meco_female, meco_male, names = c('female','male'))
+shapiro.test(meco_left)
+shapiro.test(meco_right)
+# the p-values of the shapiro test are low so these two variables can't be assumed to 
+# be normally distributed 
 
-var.test(meco_bilateral,meco_left)
-# different variance
+boxplot(meco_left, meco_right, names = c('Left','Right'), main='MeCo distribution by laterality')
 
-z.test(meco_left, meco_bilateral,mu=0,sigma.x = sd(meco_left),sigma.y = sd(meco_bilateral),alternative='two.sided')
-# significantly different mean 
-z.test(meco_left, meco_bilateral,mu=0,sigma.x = sd(meco_left),sigma.y = sd(meco_bilateral),alternative='less')
-# people with left tumor have a lower general meco score than people with bilateral
+# H0: No tendency of MeCo score depending on the laterality
+# H1: Tendency of some type of MeCo score depending on the laterality
+wilcox.test(meco_right, meco_left, paired=F, alternative='two.sided', conf.int = T)
+# 0.2 -> no significant difference
 
-# CI difference
+# MeCo regulation
+df5 <- data.frame(MeCo_reg,laterality)
+meco_left <- df5$MeCo_reg[which(df5$laterality =='Left')]
+meco_right <- df5$MeCo_reg[which(df5$laterality =='Right')]
+shapiro.test(meco_left)
+# this variable is not normally distributed
+shapiro.test(meco_right)
+# this variable is normally distributed
 
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_bil_left <- c((mean(meco_left)-mean(meco_bilateral))-z*sqrt((sd(meco_left)**2/length(meco_left))+(sd(meco_bilateral)**2/length(meco_bilateral))),(mean(meco_left)-mean(meco_bilateral))+z*sqrt((sd(meco_left)**2/length(meco_left))+(sd(meco_bilateral)**2/length(meco_bilateral))))
-CI_MeCo_bil_left 
+boxplot(meco_left, meco_right, names = c('Left','Right'), main='MeCo regultion distribution by laterality')
 
-
-var.test(meco_bilateral,meco_right)
-# different variance
-
-z.test(meco_right, meco_bilateral,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_bilateral),alternative='two.sided')
-# significantly different mean 
-z.test(meco_right, meco_bilateral,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_bilateral),alternative='less')
-# people with right tumor have a lower general meco score than people with bilateral
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_bil_right <- c((mean(meco_right)-mean(meco_bilateral))-z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_bilateral)**2/length(meco_bilateral))),(mean(meco_right)-mean(meco_bilateral))+z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_bilateral)**2/length(meco_bilateral))))
-CI_MeCo_bil_right
+# H0: No tendency of MeCo regulation score depending on the laterality
+# H1: Tendency of some type of MeCo regulation score depending on the laterality
+wilcox.test(meco_right, meco_left, paired=F, alternative='two.sided', conf.int = T)
+# 0.8 -> no significant difference
 
 
+# MeCo stimulus
+df5 <- data.frame(MeCo_st,laterality)
+meco_left <- df5$MeCo_st[which(df5$laterality =='Left')]
+meco_right <- df5$MeCo_st[which(df5$laterality =='Right')]
+shapiro.test(meco_left)
+# this variable is not normally distributed
+shapiro.test(meco_right)
+# this variable is normally distributed
 
-var.test(meco_left,meco_right)
-# different variance
+boxplot(meco_left, meco_right, names = c('Left','Right'), main='MeCo stimulus distribution by laterality')
 
-z.test(meco_right, meco_left,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_left),alternative='two.sided')
-# significantly different mean 
-z.test(meco_right, meco_left,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_left),alternative='greater')
-# people with right tumor have a greater general meco score than people with left
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCo_left_right <- c((mean(meco_right)-mean(meco_left))-z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_left)**2/length(meco_left))),(mean(meco_right)-mean(meco_left))+z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_left)**2/length(meco_left))))
-CI_MeCo_left_right
-
-
-# meco Pro
-
-df5 <- data.frame(MeCo_Pro,laterality)
-meco_bilateral <- df5$MeCo_Pro[which(df5$laterality =='Bilateral')]
-meco_left <- df5$MeCo_Pro[which(df5$laterality =='Left')]
-meco_right <- df5$MeCo_Pro[which(df5$laterality =='Right')]
-boxplot(meco_female, meco_male, names = c('female','male'))
-
-var.test(meco_bilateral,meco_left)
-# different variance
-
-z.test(meco_left, meco_bilateral,mu=0,sigma.x = sd(meco_left),sigma.y = sd(meco_bilateral),alternative='two.sided')
-# significantly different mean 
-z.test(meco_left, meco_bilateral,mu=0,sigma.x = sd(meco_left),sigma.y = sd(meco_bilateral),alternative='less')
-# people with left tumor have a lower general meco score than people with bilateral
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_bil_left <- c((mean(meco_left)-mean(meco_bilateral))-z*sqrt((sd(meco_left)**2/length(meco_left))+(sd(meco_bilateral)**2/length(meco_bilateral))),(mean(meco_left)-mean(meco_bilateral))+z*sqrt((sd(meco_left)**2/length(meco_left))+(sd(meco_bilateral)**2/length(meco_bilateral))))
-CI_MeCoPro_bil_left 
+# H0: No tendency of MeCo stimulus score depending on the laterality
+# H1: Tendency of some type of MeCo stimulus score depending on the laterality
+wilcox.test(meco_right, meco_left, paired=F, alternative='two.sided', conf.int = T)
+# 0.9 -> no significant difference
 
 
-var.test(meco_bilateral,meco_right)
-# different variance
+# MeCo development
+df5 <- data.frame(MeCo_dev,laterality)
+meco_left <- df5$MeCo_dev[which(df5$laterality =='Left')]
+meco_right <- df5$MeCo_dev[which(df5$laterality =='Right')]
+shapiro.test(meco_left)
+# this variable is not normally distributed
+shapiro.test(meco_right)
+# this variable is normally distributed
 
-z.test(meco_right, meco_bilateral,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_bilateral),alternative='two.sided')
-# significantly different mean 
-z.test(meco_right, meco_bilateral,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_bilateral),alternative='less')
-# people with right tumor have a lower general meco score than people with bilateral
+boxplot(meco_left, meco_right, names = c('Left','Right'), main='MeCo development distribution by laterality')
 
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_bil_right <- c((mean(meco_right)-mean(meco_bilateral))-z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_bilateral)**2/length(meco_bilateral))),(mean(meco_right)-mean(meco_bilateral))+z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_bilateral)**2/length(meco_bilateral))))
-CI_MeCoPro_bil_right
-
-
-
-var.test(meco_left,meco_right)
-# different variance
-
-z.test(meco_right, meco_left,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_left),alternative='two.sided')
-# significantly different mean 
-z.test(meco_right, meco_left,mu=0,sigma.x = sd(meco_right),sigma.y = sd(meco_left),alternative='greater')
-# people with right tumor have a greater general meco score than people with left
-
-# CI difference
-
-z <- qnorm(0.025, lower.tail = F)
-CI_MeCoPro_left_right <- c((mean(meco_right)-mean(meco_left))-z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_left)**2/length(meco_left))),(mean(meco_right)-mean(meco_left))+z*sqrt((sd(meco_right)**2/length(meco_right))+(sd(meco_left)**2/length(meco_left))))
-CI_MeCoPro_left_right
-
-
-# meco is higher in those with metastasis?
-
-# general meco
-df6 <- data.frame(MeCo,metastasis)
-meco_Yes <- df6$MeCo[which(df6$metastasis =='YES')]
-meco_No <- df6$MeCo[which(df6$metastasis =='NO')]
-boxplot(meco_Yes, meco_No, names = c('metastasis','no metastasis'))
-
-var.test(meco_Yes,meco_No)
-# equal variance -> t test
-
-s2.pooled=((length(meco_Yes)-1)*sd(meco_Yes)^2+(length(meco_No)-1)*sd(meco_No)^2)/(length(meco_Yes)+length(meco_No)-2)
-s2.pooled
-
-t.test(meco_Yes,meco_No,mu=0,paired=FALSE,var.equal=TRUE,alternative='two.sided')
-# not significantly different mean 
-t.test(meco_Yes,meco_No,mu=0,paired=FALSE,var.equal=TRUE,alternative='greater')
-# people with metastasis don't have higher meco
-
-# CI of the difference
-
-t <- qt(0.025,length(meco_Yes)+length(meco_No)-2, lower.tail = F)
-CI_MeCo_meta <- c((mean(meco_Yes)-mean(meco_No))-t*sqrt(s2.pooled) , (mean(meco_Yes)-mean(meco_No))+t*sqrt(s2.pooled) )
-CI_MeCo_meta
-
-
-# meco Pro 
-
-df6 <- data.frame(MeCo_Pro,metastasis)
-meco_Yes <- df6$MeCo_Pro[which(df6$metastasis =='YES')]
-meco_No <- df6$MeCo_Pro[which(df6$metastasis =='NO')]
-boxplot(meco_Yes, meco_No, names = c('metastasis','no metastasis'))
-
-var.test(meco_Yes,meco_No)
-# equal variance -> t test
-
-s2.pooled=((length(meco_Yes)-1)*sd(meco_Yes)^2+(length(meco_No)-1)*sd(meco_No)^2)/(length(meco_Yes)+length(meco_No)-2)
-s2.pooled
-
-t.test(meco_Yes,meco_No,mu=0,paired=FALSE,var.equal=TRUE,alternative='two.sided')
-# not significantly different mean 
-t.test(meco_Yes,meco_No,mu=0,paired=FALSE,var.equal=TRUE,alternative='greater')
-# people with metastasis don't have higher meco
-
-# CI of the difference
-
-t <- qt(0.025,length(meco_Yes)+length(meco_No)-2, lower.tail = F)
-CI_MeCoPro_meta <- c((mean(meco_Yes)-mean(meco_No))-t*sqrt(s2.pooled) , (mean(meco_Yes)-mean(meco_No))+t*sqrt(s2.pooled) )
-CI_MeCoPro_meta
-
+# H0: No tendency of MeCo development score depending on the laterality
+# H1: Tendency of some type of MeCo development score depending on the laterality
+wilcox.test(meco_right, meco_left, paired=F, alternative='two.sided', conf.int = T)
+# 0.1 -> no significant difference

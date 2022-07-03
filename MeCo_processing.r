@@ -266,3 +266,54 @@ for (i in MecoScore$patients){
   mean_down <- mean(geno_data2[which(geno_data2[,1] %in% `GLO_19_GO:0032502 developmental process`),i])
   MecoScore[which(MecoScore$patients == i),]$MR_Developmental <- mean_up - mean_down
 }
+
+
+
+# DATASET DEFINITION
+
+# set up a dataset with the variables of interest:
+surv_data <- data.frame(pheno_data$submitter_id.samples) 
+#age
+surv_data$age <- pheno_data$age_at_initial_pathologic_diagnosis
+#time to event
+surv_data$time <- NA
+time_to_death <- pheno_data$days_to_death.demographic
+time_to_last_FU <- pheno_data$days_to_last_follow_up.diagnoses
+
+for (i in 1:length(pheno_data$submitter_id.samples)){
+  if (is.na(time_to_death[i]))
+    surv_data$time[i] <- time_to_last_FU[i]
+  else
+    surv_data$time[i] <- time_to_death[i]
+}
+
+#status
+surv_data$status <- as.numeric(as.factor(pheno_data$vital_status.demographic)) # 1 = patient alive, 2 = patient dead
+#metastasis
+surv_data$metastasis <- NA
+meta <- pheno_data$additional_surgery_metastatic_procedure
+
+for (i in 1:length(pheno_data$submitter_id.samples)){
+  if (meta[i]=="")
+    surv_data$metastasis[i] <- 'NO'
+  else
+    surv_data$metastasis[i] <- 'YES'
+}
+surv_data$metastasis <- as.factor(surv_data$metastasis)
+#sex
+surv_data$gender <- as.factor(pheno_data$gender.demographic)
+#tumor stage
+surv_data$stage <- as.factor(pheno_data$tumor_stage.diagnoses)
+# laterality
+surv_data$laterality <- as.factor(pheno_data$laterality)
+# MeCo scores
+surv_data$MeCo <- MecoScore$MeSc
+surv_data$MeCo_st <- MecoScore$MR_Stimulus
+surv_data$MeCo_reg <- MecoScore$MR_Regulation
+surv_data$MeCo_dev <- MecoScore$MR_Developmental
+
+# check the presence of NA values
+which(is.na(surv_data))
+
+# remove time=0
+surv_data <- surv_data[-which(surv_data$time==0),]

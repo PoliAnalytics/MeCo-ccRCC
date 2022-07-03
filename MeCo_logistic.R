@@ -36,6 +36,31 @@ exp(logistic_age$coefficients)
 # age is a significant risk factor: its unitary increase increases the probability of death
 # of 3.7%
 
+# Define the vector x of limits for the AGE classes
+x   <- seq(min(surv_data$age),max(surv_data$age),10)
+
+# Central point in the intervals of ages
+mid <- c((x[-1]+x[-7])/2)
+
+# Divide the data in classes
+GRAGE <- cut(surv_data$age, breaks=x)   # cut is a very convenient command to 
+tab <- table(GRAGE)
+tab
+
+y <- tapply(surv_data$status, GRAGE, mean)
+y
+
+plot(surv_data$age, surv_data$status, pch=19, col=surv_data$status+1, ylim=c(0,1), xlab = 'Age',ylab = 'Status', main='Status by age')
+abline(v=x, col='grey', lty=2)
+points(mid, y, col="blue", pch=3, lwd=2)
+
+library(tidyverse)
+
+d <- data.frame(age =surv_data$age, fitted=logistic_age$fitted)
+s <- arrange(d, age)
+
+lines(s$age, s$fitted, col='blue')
+
 # OR for an age increment of 10 years
 exp(10*coef(logistic_age)[2])   
 # the probability of death after 10 years is 44% higher
@@ -64,6 +89,30 @@ c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standar
   'Center'=pred$fit,
   'Up'=pred$fit+qnorm(1-alpha/2)*pred$se)
 # CI: [-0.9833312, -0.6034349]
+
+par(mfrow=c(1,2))
+# Representation in the space (AGE,logit(p))
+plot(surv_data$age, coef(logistic_age)[1]+coef(logistic_age)[2]*surv_data$age, type='l',ylab='logit(p)',xlab='Age',
+     main="CI in the space (AGE,logit(p))")
+points(x.new,pred$fit,pch=19)
+segments(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,
+         x.new,pred$fit+qnorm(1-alpha/2)*pred$se, col='red')
+points(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+points(x.new,pred$fit+qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+
+# Representation in the space (AGE,p)
+gl <- binomial(link=logit)    # link function
+
+d <- data.frame(age =surv_data$age, lpred=logistic_age$linear.predictors)
+s <- arrange(d, age)
+
+plot(s$age, gl$linkinv(s$lpred), type='l',ylab='p',xlab='Age',
+     main="CI in the space (AGE,p)")
+points(x.new,gl$linkinv(pred$fit),pch=19)
+segments(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),
+         x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se), col='red')
+points(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),pch='-',col='red')
+points(x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se),pch='-',col='red')
 
 
 # fit the logistic model by MeCo (non refined)

@@ -317,3 +317,48 @@ which(is.na(surv_data))
 
 # remove time=0
 surv_data <- surv_data[-which(surv_data$time==0),]
+
+
+
+# DATA VISUALIZATION
+
+library(ggplot2)
+
+# visualize MeCo distribution by stage 
+data <- data.frame(MeCo = surv_data$MeCo, stage = surv_data$stage)
+
+ggplot(data, aes(x = stage, y = MeCo, fill = stage)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo distribution by stage")
+
+# visualize MeCo regulation distribution by stage 
+data2 <- data.frame(MeCo_reg = surv_data$MeCo_reg, stage = surv_data$stage)
+
+ggplot(data2, aes(x = stage, y = MeCo_reg, fill = stage)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo regulation distribution by stage")
+
+# visualize MeCo distribution by age 
+summary(age)
+surv_data$agecat <- cut(surv_data$age, breaks=c(0,60,Inf), label=c('young','old'))
+data3 <- data.frame(MeCo = surv_data$MeCo, age = surv_data$agecat)
+
+ggplot(data3, aes(x = age, y = MeCo, fill = age)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo distribution by age")
+
+# visualize MeCo regulation distribution by age 
+data4 <- data.frame(MeCo_reg = surv_data$MeCo_reg, age = surv_data$agecat)
+
+ggplot(data4, aes(x = age, y = MeCo_reg, fill = age)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo regulation distribution by age")
+

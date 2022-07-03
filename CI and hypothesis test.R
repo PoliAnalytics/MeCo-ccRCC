@@ -1,6 +1,6 @@
 attach(surv_data)
 
-# FIRST HYPOTHESIS TES: test, for each type of MeCo score, if it increases with age
+# FIRST HYPOTHESIS TEST: test, for each type of MeCo score, if it increases with age
 
 # general MeCo score
 df <- data.frame(age=surv_data$age,MeCo)

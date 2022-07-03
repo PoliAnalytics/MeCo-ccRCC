@@ -1,0 +1,167 @@
+# Mixed Effect Models
+
+library(ggplot2)
+library(insight)
+library(lattice)
+library(lme4)
+
+# Linear Mixed Model with random intercept - general MeCo
+meco_mem <-  lmer(status ~ MeCo + age +(1|stage), data=surv_data)
+summary(meco_mem)
+
+sigma2_eps <- as.numeric(get_variance_residual(meco_mem))
+sigma2_b <- as.numeric(get_variance_random(meco_mem))
+
+PVRE <- sigma2_b/(sigma2_b+sigma2_eps)
+PVRE
+# 32.8%
+
+quartz()
+dotplot(ranef(meco_mem))
+
+par(mfrow=c(1,2))
+plot(c(1:4), unlist(coef(meco_mem)$stage[1]),
+     xlab='stage i', ylab=expression(beta[0]+b['0i']),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated random intercepts')
+abline(h=fixef(meco_mem)[1], lty=2, col='red', lwd=2)
+legend(115, 3.34, legend=expression(paste('Fixed intercept ',beta[0])), lwd=2, lty=2, col='red', x.intersp=0.5)
+plot(c(1:4), unlist(coef(meco_mem)$stage[2]),
+     xlab='stage i', ylab=expression(beta[1]),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated fixed slopes')
+abline(h=fixef(meco_mem)[2], lty=2, col='red', lwd=2)
+legend(115, 0.147, legend=expression(paste('Fixed slope ',beta[1])), lwd=2, lty=2, col='red', x.intersp=0.5)
+
+
+# Assessing Assumption on the within-group errors: they are expected to be independent and identically normally distributed,
+# with mean zero and variance sigma2, and they are independent of the random effects.
+plot(meco_mem)
+
+qqnorm(resid(meco_mem))
+qqline(resid(meco_mem), col='red', lwd=2)
+
+shapiro.test(resid(meco_mem))
+# within-group errors are not normally distributed
+
+# Assessing Assumption on the Random Effects: they are expected to be normally distributed, 
+# with mean zero and covariance matrix 𝜮 (not depending on the group) and are independent for different groups.
+qqnorm(unlist(ranef(meco_mem)$stage), main='Normal Q-Q Plot - Random Effects on Intercept')
+qqline(unlist(ranef(meco_mem)$stage), col='red', lwd=2)
+
+shapiro.test(unlist(ranef(meco_mem)$stage))
+# the Random Effects are normally distributed
+
+
+# Linear Mixed Model with random intercept - MeCo regulation
+meco_mem_reg <-  lmer(status ~  age + MeCo_reg + (1|stage), data=surv_data)
+summary(meco_mem_reg)
+
+sigma2_eps <- as.numeric(get_variance_residual(meco_mem_reg))
+sigma2_b <- as.numeric(get_variance_random(meco_mem_reg))
+
+PVRE <- sigma2_b/(sigma2_b+sigma2_eps)
+PVRE
+#32%
+
+# Assessing Assumption on the within-group errors
+plot(meco_mem_reg)
+
+qqnorm(resid(meco_mem_reg))
+qqline(resid(meco_mem_reg), col='red', lwd=2)
+
+shapiro.test(resid(meco_mem_reg))
+# within-group errors are not normally distributed
+
+# Assessing Assumption on the Random Effects
+qqnorm(unlist(ranef(meco_mem_reg)$stage), main='Normal Q-Q Plot - Random Effects on Intercept')
+qqline(unlist(ranef(meco_mem_reg)$stage), col='red', lwd=2)
+
+shapiro.test(unlist(ranef(meco_mem_reg)$stage))
+# Random Effects are normally distributed
+
+
+# Logistic Mixed Effects Models with Random intercept - MeCo general
+
+# since in logistic model 0<=y<=1:
+surv_data$status[which(surv_data$status==1)] <- 0 # alive
+surv_data$status[which(surv_data$status==2)] <- 1 # dead
+
+log_MEM <- glmer(status ~ age + MeCo + (1 |stage), family=binomial, data=surv_data)
+summary(log_MEM)
+
+sigma2_lat <- pi^2/3
+sigma2_lat
+
+sigma2_b<- as.numeric(get_variance_intercept(log_MEM))
+
+VPC <- sigma2_b/(sigma2_b+sigma2_lat)
+VPC
+# 30.4%
+
+dotplot(ranef(log_MEM))
+
+# Assessing Assumption on the Random Effects
+qqnorm(unlist(ranef(log_MEM)), main='Normal Q-Q Plot - Random Intercept for stage')
+qqline(unlist(ranef(log_MEM)), col='red', lwd=2)
+
+shapiro.test(unlist(ranef(log_MEM)))
+# Random Effects are normally distributed
+
+# 95% CIs
+alpha <- 0.05
+se <- sqrt(diag(vcov(log_MEM))) #standard errors
+# table of estimates with 95% CI using errors we obtained above
+CI_betas <- cbind(Est = fixef(log_MEM), 
+                  Lower = fixef(log_MEM) - qnorm(1-alpha/2) * se, 
+                  Upper = fixef(log_MEM) + qnorm(1-alpha/2) * se)
+round(CI_betas,3)
+# age: CI [0.028  0.067] -> it increases the probability of death in a significant way
+# MeCo: CI [-5.547 -0.207] -> it decreases the probability of death in a significant way
+
+# To get to the odds and their 95% CI, we can take exponential of beta estimates:
+CI_OR <- exp(CI_betas)
+round(CI_OR,3)
+# unitary increase of age increases the probability of death of 4.9%, 
+# unitary increase of MeCo decreases the probability of death of 95%, 
+
+
+# Logistic Mixed Effects Models with Random intercept - MeCo regulation
+
+log_MEM_reg <- glmer(status ~ age + MeCo_reg + (1 |stage), family=binomial, data=surv_data)
+summary(log_MEM_reg)
+
+sigma2_lat <- pi^2/3
+sigma2_lat
+
+sigma2_b<- as.numeric(get_variance_intercept(log_MEM_reg))
+
+VPC <- sigma2_b/(sigma2_b+sigma2_lat)
+VPC
+# 29.6%
+
+dotplot(ranef(log_MEM_reg))
+
+# Assessing Assumption on the Random Effects
+qqnorm(unlist(ranef(log_MEM_reg)), main='Normal Q-Q Plot - Random Intercept for stage')
+qqline(unlist(ranef(log_MEM_reg)), col='red', lwd=2)
+
+shapiro.test(unlist(ranef(log_MEM_reg)))
+# Random Effects are normally distributed
+
+# 95% CIs
+alpha <- 0.05
+se <- sqrt(diag(vcov(log_MEM_reg))) #standard errors
+# table of estimates with 95% CI using errors we obtained above
+CI_betas <- cbind(Est = fixef(log_MEM_reg), 
+                  Lower = fixef(log_MEM_reg) - qnorm(1-alpha/2) * se, 
+                  Upper = fixef(log_MEM_reg) + qnorm(1-alpha/2) * se)
+round(CI_betas,3)
+# age: CI [0.028  0.067] -> it increases the probability of death in a significant way
+# MeCo: CI [-4.411 -0.195] -> it decreases the probability of death in a significant way
+
+# To get to the odds and their 95% CI, we can take exponential of beta estimates:
+CI_OR <- exp(CI_betas)
+round(CI_OR,3)
+# unitary increase of age increases the probability of death of 4.9%, 
+# unitary increase of MeCo decreases the probability of death of 90%, 

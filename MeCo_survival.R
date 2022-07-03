@@ -1,4 +1,5 @@
 # Survival Analysis
+
 BiocManager::install('survival')
 BiocManager::install('survminer')
 library(survival)
@@ -163,27 +164,6 @@ survdiff(Surv(time, status)~mecocat, data=surv_data[surv_data$stage== 'stage iii
 survdiff(Surv(time, status)~mecocat, data=surv_data[surv_data$stage== 'stage iv',])
 # within patients of the same stage there seems to be no difference in survival based on MeCo
 
-# investigate MeCo stimulus
-hist(surv_data$MeCo_st)
-summary(surv_data$MeCo_st)
-# cut-off=median(MeCo_st)=-0.2001
-surv_data$mecocat_st <- cut(surv_data$MeCo_st, breaks=c(-0.6689, -0.2729, -0.2001, -0.1430, 0.0699))
-fit.mecocat_st <- survival::survfit(survival::Surv(time,status)~mecocat_st, data=surv_data)
-summary(fit.mecocat_st)
-
-# perform Log-Rank test
-survival::survdiff(survival::Surv(time,status)~mecocat_st, data=surv_data)
-# p=0.2 -> there is no statistical evidence of a difference in the survival of patients with 
-# higher and lower MeCo stimulus scores
-
-ggsurvplot(fit.mecocat_st,risk.table = TRUE, # Add risk table
-           risk.table.col = "strata", # Change risk table color by groups
-           surv.median.line = "hv", # Specify median survival
-           ggtheme = theme_bw(), # Change ggplot2 theme
-           break.time.by=250,
-           conf.int = T,
-           title="Kaplan-Meier Curve for MeCo stimulus")
-
 # investigate MeCo regulation
 hist(surv_data$MeCo_reg)
 summary(surv_data$MeCo_reg)
@@ -205,30 +185,6 @@ ggsurvplot(fit.mecocat_reg,risk.table = TRUE, # Add risk table
            break.time.by=250,
            conf.int = T,
            title="Kaplan-Meier Curve for MeCo regulation")
-
-# investigate MeCo development
-hist(surv_data$MeCo_dev)
-summary(surv_data$MeCo_dev)
-# cut-off=median(MeCo_dev)=0.2553
-surv_data$mecocat_dev <- cut(surv_data$MeCo_dev, breaks=c(-0.3644,  0.1913,  0.2553,  0.3146,  0.5132))
-fit.mecocat_dev <- survival::survfit(survival::Surv(time,status)~mecocat_dev, data=surv_data)
-summary(fit.mecocat_dev)
-print(fit.mecocat_dev)
-
-# perform Log-Rank test
-survival::survdiff(survival::Surv(time,status)~mecocat_dev, data=surv_data)
-# p=0.7 -> there is no statistical evidence of a difference in the survival of patients with higher 
-# and lower MeCo development scores
-
-ggsurvplot(fit.mecocat_dev,risk.table = TRUE, # Add risk table
-           risk.table.col = "strata", # Change risk table color by groups
-           surv.median.line = "hv", # Specify median survival
-           ggtheme = theme_bw(), # Change ggplot2 theme
-           break.time.by=250,
-           conf.int = T,
-           title="Kaplan-Meier Curve for MeCo development")
-
-
 
 
 # In order to better evaluate the relationship between covariates and the role of the different predictors, such as MeCo scores,
@@ -263,52 +219,34 @@ print(cox.meco_only)
 ggforest(cox.meco_only, data=surv_data)
 # MeCo is a significant protective factor: its unitary increase decreases the risk of death of 96%
 
-# include other MeCos with only significant covariates according to KM
-cox.meco2<- coxph(Surv(time, status) ~ age+stage+MeCo_st+MeCo_reg+MeCo_dev, data = surv_data)
+# cox model with only MeCo regulation score as covariate
+cox.mecoreg_only <- coxph(Surv(time, status) ~ MeCo_reg, data = surv_data)
+summary(cox.mecoreg_only)
+print(cox.mecoreg_only)
+ggforest(cox.mecoreg_only, data=surv_data)
+# MeCo regulation is a significant protective factor: its unitary increase decreases the risk of 
+# death of 94%
+
+# include Meco regulation with only significant covariates according to KM
+cox.meco2<- coxph(Surv(time, status) ~ age+stage+MeCo_reg, data = surv_data)
 summary(cox.meco2)
 print(cox.meco2)
 ggforest(cox.meco2, data=surv_data)
-# only age, stage 3 and 4 and MeCo_reg have a statistically significant effect on the probability of survival.
-# unitary increase of age increases the risk of death of 3.6%
-# unitary increase of the MeCo_reg score decreases the risk of death of 95% 
-# being of stage 3 increases the risk of death of 2.45 times with respect to being if stage 1
-# being of stage 4 increases the risk of death of 6.32 times with respect to being if stage 1
-
-# include only Meco regulation with only significant covariates according to KM
-cox.meco3<- coxph(Surv(time, status) ~ age+stage+MeCo_reg, data = surv_data)
-summary(cox.meco3)
-print(cox.meco3)
-ggforest(cox.meco3, data=surv_data)
 # age, stage 3 and 4 and MeCo_reg have a statistically significant effect on the probability of survival.
 # unitary increase of age increases the risk of death of 3.6%
 # unitary increase of the MeCo_reg score decreases the risk of death of 86% 
 # being of stage 3 increases the risk of death of 2.42 times with respect to being if stage 1
 # being of stage 4 increases the risk of death of 6.44 times with respect to being if stage 1
 
-# investigate only refined MeCos
-cox.mecoonly <- coxph(Surv(time, status)~MeCo_st+MeCo_reg+MeCo_dev, data=surv_data)
-summary(cox.mecoonly)
-print(cox.mecoonly)
-ggforest(cox.mecoonly, data=surv_data)
-# MeCo regulation has a strong statistically significant effect on the probability of survival, while MeCo development is 
-# significant even if less that MeCo_reg.
-# unitary increase of the MeCo_reg score decreases the risk of death of almost the 100%
-# while unitary increase of the MeCo_dev score increases the risk of death of 13 times
 
-
-
-# best Cox model with MeCo predictor
-cox.best1 <- coxph(Surv(time, status)~age+stage+MeCo, data=surv_data)
-summary(cox.best1)
-
-# Predicted adjusted survival probability from a Cox model - stage 3
+# Predicted adjusted survival probability from a Cox model - stage 3 and MeCo general
 df_stage3 <- with(surv_data,
                   data.frame(age = c(60,60,60),
                              stage = as.factor(rep('stage iii',3)),
                              MeCo = c(0.1,0.24,0.35))
 )
 
-fit.df_stage3 <- survfit(cox.best1, newdata = df_stage3)
+fit.df_stage3 <- survfit(cox.meco, newdata = df_stage3)
 fit.df_stage3
 
 plot(fit.df_stage3, conf.int=T,
@@ -319,14 +257,14 @@ grid()
 legend('bottomleft', c("MeCo = 0.1", "MeCo = 0.24", "MeCo = 0.35"),
        lty=c(1,1,1), lwd=c(2,2,2), cex=1,col=c("dodgerblue2","navy","darkmagenta"))
 
-# Predicted adjusted survival probability from a Cox model - stage 4
+# Predicted adjusted survival probability from a Cox model - stage 4 ang MeCo general
 df_stage4 <- with(surv_data,
                   data.frame(age = c(60,60,60),
                              stage = as.factor(rep('stage iv',3)),
                              MeCo = c(0.1,0.24,0.35))
 )
 
-fit.df_stage4 <- survfit(cox.best1, newdata = df_stage4)
+fit.df_stage4 <- survfit(cox.meco, newdata = df_stage4)
 fit.df_stage4
 
 plot(fit.df_stage4, conf.int=T,
@@ -338,19 +276,14 @@ legend('topright', c("MeCo = 0.1", "MeCo = 0.24", "MeCo = 0.35"),
        lty=c(1,1,1), lwd=c(2,2,2), cex = 1, col=c("dodgerblue2","navy","darkmagenta"))
 
 
-# best Cox model with MeCo regulation predictor
-cox.best2 <- coxph(Surv(time, status)~age+stage+MeCo_reg, data=surv_data)
-summary(cox.best2)
-
-summary(surv_data$MeCo_reg)
-# Predicted adjusted survival probability from a Cox model - stage 3
+# Predicted adjusted survival probability from a Cox model - stage 3 and MeCo regulation
 df_stage3 <- with(surv_data,
                   data.frame(age = c(60,60,60),
                              stage = as.factor(rep('stage iii',3)),
                              MeCo_reg = c(0.05,0.08,0.13))
 )
 
-fit.df_stage3 <- survfit(cox.best2, newdata = df_stage3)
+fit.df_stage3 <- survfit(cox.meco2, newdata = df_stage3)
 fit.df_stage3
 
 plot(fit.df_stage3, conf.int=T,
@@ -361,14 +294,14 @@ grid()
 legend('bottomleft', c("MeCo_reg = 0.05", "MeCo_reg = 0.08", "MeCo_reg = 0.13"),
        lty=c(1,1,1), lwd=c(2,2,2), cex=1,col=c("dodgerblue2","navy","darkmagenta"))
 
-# Predicted adjusted survival probability from a Cox model - stage 4
+# Predicted adjusted survival probability from a Cox model - stage 4 and MeCo regulation
 df_stage4 <- with(surv_data,
                   data.frame(age = c(60,60,60),
                              stage = as.factor(rep('stage iv',3)),
                              MeCo_reg = c(0.05,0.08,0.13))
 )
 
-fit.df_stage4 <- survfit(cox.best2, newdata = df_stage4)
+fit.df_stage4 <- survfit(cox.meco2, newdata = df_stage4)
 fit.df_stage4
 
 plot(fit.df_stage4, conf.int=T,
@@ -386,35 +319,31 @@ legend('topright', c("MeCo_reg = 0.05", "MeCo_reg = 0.08", "MeCo_reg = 0.13"),
 # firstly assess goodness of fit:
 # plot the martingale residuals and verify that they have mean=0 
 # residuals vs linear predictions
-ggcoxdiagnostics(cox.best1, type = "martingale",linear.predictions = T, main='Martingale residuals')
-# residuals vs observation id
-ggcoxdiagnostics(cox.best1, type = "martingale",linear.predictions = F)
+ggcoxdiagnostics(cox.meco, type = "martingale",linear.predictions = T, main='Martingale residuals')
 # the condition seems to hold
 
-ggcoxdiagnostics(cox.best2, type = "martingale",linear.predictions = T, main='Martingale residuals')
-# residuals vs observation id
-ggcoxdiagnostics(cox.best2, type = "martingale",linear.predictions = F)
+ggcoxdiagnostics(cox.meco2, type = "martingale",linear.predictions = T, main='Martingale residuals')
 # the condition seems to hold
 
 # plot the deviance residuals and verify that they are roughly symmetrically distributed 
 # about zero with a standard deviation of 1.
-ggcoxdiagnostics(cox.best1, type = "deviance",linear.predictions = T, main='Deviance residuals')
+ggcoxdiagnostics(cox.meco, type = "deviance",linear.predictions = T, main='Deviance residuals')
 # Even if the residuals are distributed around 0 there are many positive values - individuals who died 
 # too soon on respect to the survival model expectancy - and many negative values - individual that “lived too long”.
 # Also there are some large or small values: they are outliers, which are poorly predicted by the model.
 
-ggcoxdiagnostics(cox.best2, type = "deviance",linear.predictions = T, main='Deviance residuals')
+ggcoxdiagnostics(cox.meco2, type = "deviance",linear.predictions = T, main='Deviance residuals')
 # the result is very similar to the one of cox.best1
 
 # now assess proportional hazards:
 # Schoenefeld residuals are expected to be centered about zero
-diag.ph <- cox.zph(cox.best1)
+diag.ph <- cox.zph(cox.meco)
 ggcoxzph(diag.ph)
 # residuals are centered around zero and they do not show any particular pattern along time, 
 # thus the PH assumption seems to hold
 
 # Schoenefeld residuals 
-diag.ph2 <- cox.zph(cox.best2)
+diag.ph2 <- cox.zph(cox.meco2)
 ggcoxzph(diag.ph2)
 # also for this second model residuals are centered around zero and they do not show any particular 
 # pattern along time, thus the PH assumption seems to hold
@@ -454,8 +383,8 @@ grid()
 legend('topright', legend=unique(summary(fit)$strata), col=1:3, lwd=2, lty=1, title='Strata k')
 
 
-# stratified cox model by stage using MeCo regulation: build a different baseline hazard function f
-# or each single level of stage 
+# stratified cox model by stage using MeCo regulation: build a different baseline hazard function for 
+# each single level of stage 
 mod.cox.strata2 <- coxph(Surv(time, status) ~ age + MeCo_reg + strata(stage) , data =  surv_data)
 summary(mod.cox.strata2)
 # both age and MeCo result statistically significant
@@ -604,3 +533,6 @@ lines(xx, yy, col = "red", lwd = 2)
 legend("bottomleft", c("KM estimate", "95% CI KM estimate", 
                        "Survival function of Extreme Value distribution"), 
        lty = c(1,2,1), col = c(1,1,2), bty = "n")
+
+
+

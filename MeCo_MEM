@@ -164,4 +164,4 @@ round(CI_betas,3)
 CI_OR <- exp(CI_betas)
 round(CI_OR,3)
 # unitary increase of age increases the probability of death of 4.9%, 
-# unitary increase of MeCo decreases the probability of death of 90%, 
+# unitary increase of MeCo decreases the probability of death of 90%

@@ -103,11 +103,6 @@ c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standar
 # CI: [-0.8529719, -0.4675687]
 
 
-# fit the logistic model by MeCo_st
-logistic_MeCoSt <- glm(status~ MeCo_st, family=binomial(link=logit), data = surv_data)
-summary(logistic_MeCoSt) 
-# Meco stimulus has no significant effect on the probability of death 
-
 # fit the logistic model by MeCo_reg
 logistic_MeCoReg <- glm(status~ MeCo_reg, family=binomial(link=logit), data = surv_data)
 summary(logistic_MeCoReg) 
@@ -145,12 +140,6 @@ c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standar
 # CI: [-1.4098515, -0.8314904]
 
 
-# fit the logistic model by MeCo_dev
-logistic_MeCoDev <- glm(status~ MeCo_dev, family=binomial(link=logit), data = surv_data)
-summary(logistic_MeCoDev) 
-# MecoDev has no significant effect on the probability of death
-
-
 # fit the logistic model by age, stage, MeCo
 log1 <- glm(status~ age+stage+MeCo, family=binomial(link=logit), data = surv_data)
 summary(log1) 
@@ -181,47 +170,14 @@ exp(log2$coefficients)
 # MeCo regulation is a significant protective factor: its unitary increase decreases the probability of death 
 # of 90%
 
-# fit the logistic model only with refined MeCos
-log_meco3 <- glm(status~ MeCo_reg+MeCo_dev, family=binomial(link=logit), data = surv_data)
-summary(log_meco3) 
-exp(log_meco3$coefficients)
-# MeCo regulation is a significant protective factor: its unitary increase decreases the probability of 
-# death of almost 100%
-# MeCo development is a significant risk factor: its unitary increase increases the probability of 
-# death of 68 times
+anova(log2,logistic_MeCoReg,test='LRT')
+# Since the p-value of LRT test is low, the full model- with age, stage and MeCo regulation 
+# as predictors - is more informative
 
-anova(log2,log_meco3,test='LRT')
-# Since the p-value of LRT test is low, the full model- with age, stage and MeCo regulation as 
-# predictors - is more informative
-
-# fit the logistic model only with age, stage, meco reg and meco dev
-log_meco4 <- glm(status~ age+stage+MeCo_reg+MeCo_dev, family=binomial(link=logit), data = surv_data)
-summary(log_meco4) 
-exp(log_meco4$coefficients)
-# being  of stage 2 with respect to stage 1 has no effect on the probability of death.
-# age is a significant risk factor: its unitary increase increases the probability of death of 4.7%
-# being of stage 3 is a significant risk factor that increases the probability of death of 2.9 times
-# with respect to being of stage 1;
-# being of stage 4 is a significant risk factor that increases the probability of death of 22 times
-# with respect to being of stage 1;
-# MeCo regulation is a significant protective factor: its unitary increase decreases the probability of death 
-# of 90%;
-# MeCo development is a significant risk factor: its unitary increase increases the probability of death 
-# of 21.7 times.
-
-anova(log2,log_meco4,test='LRT')
-# Since the p-value of LRT test is low, the full model- with age, stage, MeCo regulation amd MeCo
-# development as predictors - is more informative
-
-anova(log1,log_meco4,test='LRT')
-# Since the p-value of LRT test is low, the full model- with age, stage, MeCo regulation amd MeCo
-# development as predictors - is more informative
-
-
-# Goodness Of Fit (GOF) of the model.
+# Goodness Of Fit (GOF) of the model with age, stage and MeCo predictors
 p_threshold = 0.5
 
-Y.hat <- ifelse(log_meco4$fitted.values<p_threshold, 0, 1) 
+Y.hat <- ifelse(log1$fitted.values<p_threshold, 0, 1) 
 Y.hat
 
 # Confusion Matrix
@@ -233,19 +189,19 @@ N <- nrow(surv_data)
 errors <- (Y.hat != surv_data$status)
 MIS_Rate  <- sum(errors)/N
 MIS_Rate 
-#21% of the patients are wrongly collocated
+#22.8% of the patients are wrongly collocated
 
 Specificity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
-# 92.4% specificity
+# 92% specificity
 
 Sensitivity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
-# 50.6% sensitivity
+# 45.9% sensitivity
 
 # use the empirical threshold to improve the sensitivity: p=sum(observed)/N
 p_threshold = sum(surv_data$status)/N
 # 0.32
 
-Y.hat <- ifelse(log_meco4$fitted.values<p_threshold, 0, 1) 
+Y.hat <- ifelse(log1$fitted.values<p_threshold, 0, 1) 
 Y.hat
 
 table(Predicted = Y.hat, Observed = surv_data$status)
@@ -253,24 +209,24 @@ table(Predicted = Y.hat, Observed = surv_data$status)
 errors <- (Y.hat != surv_data$status)
 MIS_Rate  <- sum(errors)/N
 MIS_Rate 
-# 23.5% misclassified
+# 24.3% of the patients are wrongly collocated
 
 Specificity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
 # 80% specificity
 
 Sensitivity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
-# 68.2% sensitivity
+# 66.5% sensitivity
 
-ROC_curve <- roc(response = surv_data$status, predictor = log_meco4$fitted.values,
+ROC_curve <- roc(response = surv_data$status, predictor = log1$fitted.values,
                  levels = c('0','1'),
                  smooth=FALSE, plot=TRUE, print.auc=TRUE, auc.polygon=TRUE,
                  main="ROC Curve")
 auc(ROC_curve)
-# 0.8095
+# 0.8028
 
 coords(ROC_curve, x="best", transpose = TRUE)
 # threshold specificity sensitivity 
-# 0.3602763   0.8431373   0.6647059 
+# 0.3818019   0.8543417   0.6352941 
 
 
 # Eventually we perform the computation of sensitivity, specificity and AUC performances 
@@ -288,7 +244,109 @@ for(k in 1:10){
   train.data <- surv_data[which(folds!=k),]
   test.data <- surv_data[which(folds==k),]
 
-  log.k <- glm(status~ age+stage+MeCo_reg+MeCo_dev, family=binomial(link=logit), data = train.data)
+  log.k <- glm(status~ age+stage+MeCo, family=binomial(link=logit), data = train.data)
+  p.hat.k <- predict( log.k, newdata = data.frame(test.data), type='response' )
+  Y.hat.k <- Y.hat <- ifelse(p.hat.k <p_threshold, 0, 1) 
+  
+  sensitivity <- c(sensitivity,
+                   Sensitivity(y_true =  test.data$status, y_pred = Y.hat.k, positive = 1)
+  )
+  specificity <- c(specificity,
+                   Specificity(y_true =  test.data$status, y_pred = Y.hat.k, positive = 1)
+  )  
+  
+  AUC <- c(AUC,
+           roc(response =  test.data$status, predictor = Y.hat.k,
+               levels = c('0','1'),
+               smooth=FALSE, plot=F, print.auc=F)$auc
+  )
+  
+}
+
+mean(sensitivity)
+# 0.66
+
+mean(specificity)
+# 0.80
+
+sd(specificity)
+# 0.048
+
+mean(AUC)
+# 0.73
+
+
+# Goodness Of Fit (GOF) of the model with age, stage and MeCo regulation predictors
+p_threshold = 0.5
+
+Y.hat <- ifelse(log2$fitted.values<p_threshold, 0, 1) 
+Y.hat
+
+# Confusion Matrix
+table(Predicted = Y.hat, Observed = surv_data$status)
+
+N <- nrow(surv_data)
+
+# Compute the misclassification rate
+errors <- (Y.hat != surv_data$status)
+MIS_Rate  <- sum(errors)/N
+MIS_Rate 
+#21.4% of the patients are wrongly collocated
+
+Specificity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
+# 92.4% specificity
+
+Sensitivity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
+# 49.4% sensitivity
+
+# use the empirical threshold to improve the sensitivity: p=sum(observed)/N
+p_threshold = sum(surv_data$status)/N
+# 0.32
+
+Y.hat <- ifelse(log2$fitted.values<p_threshold, 0, 1) 
+Y.hat
+
+table(Predicted = Y.hat, Observed = surv_data$status)
+
+errors <- (Y.hat != surv_data$status)
+MIS_Rate  <- sum(errors)/N
+MIS_Rate 
+# 24.9% of the patients are wrongly collocated
+
+Specificity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
+# 79.2% specificity
+
+Sensitivity(y_true = surv_data$status, y_pred = Y.hat, positive = 1)
+# 66.5% sensitivity
+
+ROC_curve <- roc(response = surv_data$status, predictor = log2$fitted.values,
+                 levels = c('0','1'),
+                 smooth=FALSE, plot=TRUE, print.auc=TRUE, auc.polygon=TRUE,
+                 main="ROC Curve")
+auc(ROC_curve)
+# 0.8026
+
+coords(ROC_curve, x="best", transpose = TRUE)
+# threshold specificity sensitivity 
+# 0.3651942   0.8487395   0.6411765 
+
+
+# Eventually we perform the computation of sensitivity, specificity and AUC performances 
+# using the empirical threshold and 10-fold cross-validation.
+K = 10
+folds <- cut(seq(1,N), breaks=K ,labels=FALSE)#Create K equally size folds (if possible)
+set.seed(1234)
+folds <- sample(folds)#Randomly shuffle the observations
+table(folds)
+
+sensitivity<-NULL
+specificity<-NULL
+AUC<-NULL
+for(k in 1:10){
+  train.data <- surv_data[which(folds!=k),]
+  test.data <- surv_data[which(folds==k),]
+  
+  log.k <- glm(status~ age+stage+MeCo_reg, family=binomial(link=logit), data = train.data)
   p.hat.k <- predict( log.k, newdata = data.frame(test.data), type='response' )
   Y.hat.k <- Y.hat <- ifelse(p.hat.k <p_threshold, 0, 1) 
   
@@ -311,13 +369,16 @@ mean(sensitivity)
 # 0.68
 
 mean(specificity)
-# 0.81
+# 0.79
 
 sd(specificity)
-# 0.068
+# 0.061
 
 mean(AUC)
-# 0.74
+# 0.732
+
+
+
 
 
 # build a logistic regression model for a multiclass problem
@@ -325,7 +386,7 @@ mean(AUC)
 library(nnet)
 
 # predict the stage from status, metastasis, age and meco_pro
-mult_logistic_stage <- multinom(stage ~ status+age+MeCo_reg+MeCo_dev, data = surv_data)
+mult_logistic_stage <- multinom(stage ~ status+age+MeCo_reg, data = surv_data)
 z <- summary(mult_logistic_stage)$coefficients/summary(mult_logistic_stage)$standard.errors
 z
 
@@ -334,11 +395,11 @@ p
 
 exp(coef(mult_logistic_stage))
 # the only feature that affects being of stage 2 is status: being dead increases the probability
-# of being of stage 2, with respect to stage 1, of 54%
+# of being of stage 2, with respect to stage 1, of 53%
 # for stage 3 both status, age and MeCo regulation have an effect: being dead increases the probability
 # of being of stage 3, with respect to stage 1, of 2.9 times. Unitary increases of age increases the probability
 # of being of stage 3, with respect to 1, of 2.5%, unitary increases of MeCo regulation decreases the probability
-# of being of stage 3, with respect to 1, of 97%
+# of being of stage 3, with respect to 1, of 99%
 # for stage 4 both status and MeCo regulation have an effect: being dead increases the probability
 # of being of stage 4, with respect to stage 1, of 22 times. Unitary increases of MeCo regulation
-# decreases the probability of being of stage 4, with respect to to 1, of almost 100%
+# decreases the probability of being of stage 4, with respect to to 1, of 99%

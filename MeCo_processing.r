@@ -2,389 +2,267 @@
 # Please feel free to give us feedbacks! 
 
 -------------------------------------------------------------------------------------------------------------------------------------------
-         Differential Gene Expression 
--------------------------------------------------------------------------------------------------------------------------------------------
 
-# Set up the data 💾
-    # First of all we need to load the full expression matrix for CAFs (Cancer Associated Fibroblasts) 
-    # and NF (Normal Fibroblasts) cultured on 3D_soft and 3D_stiff substrates.
-  
-        install.packages('readxl')
-        library(readxl)
+library(readxl)
+library(edgeR)
 
-        soft <- read_excel("3D_NF_so.xlsx")
-        stiff <- read_excel("3D_NF_st.xlsx")
+BiocManager::install("EnsDb.Hsapiens.v86")
+library(EnsDb.Hsapiens.v86)
 
-    # Combine the two expression matrices (soft & stiff) to have a single one with only the expression levels of CAFs 
-    # We want to keep the ENSEMBL id for each gene for later use in DESeq2, so we keep the first column. 
+soft <- read_excel("3D_NF_so.xlsx")
+stiff <- read_excel("3D_NF_st.xlsx")
 
-        countData <- data.frame(soft[,c(1, 5, 6, 7)], stiff[, c(5, 6, 7)])
+# convert Ensembl_gene_ID in gene symbols
+geneID_soft <- ensembldb::select(EnsDb.Hsapiens.v86, keys= soft$Ensembl_gene_ID, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+geneID_stiff <- ensembldb::select(EnsDb.Hsapiens.v86, keys= stiff$Ensembl_gene_ID, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
 
-    # DESeq2 Analysis 🧬
-        # Metadata and preparation of the data
-          # Create a matrix for the metadata associated to each sample
-          # This will enable DESeq2 to recognize which sample is associated which condition, for simplicity reported here as 'control' and 'treatment'.
-          # This way we can compare the gene expression of CAF grown on 3D_soft substrate (control) 
-          # with the gene expression of CAF grown on 3D_stiff (treatment).
+`%notin%` <- Negate(`%in%`)
 
-            control <- 'control'
-            treatment <- 'treatment'
-            id <- c('soft1', 'soft2', 'soft3', 'stiff1', 'stiff2', 'stiff3')
-            dex <- c(rep(control, 3), rep(treatment, 3))
+# remove all the Ensembl_gene_IDs for which there isn't the corresponding gene symbol
+soft <- soft[-c(which(soft$Ensembl_gene_ID %notin% geneID_soft$GENEID)),]
+stiff <- stiff[-c(which(stiff$Ensembl_gene_ID %notin% geneID_stiff$GENEID)),]
 
-            metadata <-  data.frame(id=as.factor(id), dex=as.factor(dex))
-            metadata
-        
-        # Performing DGE and taking care of FDR(False Discovery Rate) 🔬
-          # We use DESeq2 to obtain differential expressed genes. We used a threshold of p.adjusted <= 0.01 and log2FC >= |±3|
-          # Opting for such a high FC is needed because we have only 3 replicates for each condition. While the p.adjusted
-          # is used for selecting only highly significant differentially expressed genes. 
-          # Discard all the lines that have at least two cells with 9 or less counts, this will help us with the FDR.
-          # For FDR we used the Benjamini-Yosef methods.
-            
-            BiocManager::install('DESeq2')
-            library(DESeq2)
-            
-            dds <- DESeqDataSetFromMatrix(countData=countData, 
-                                colData=metadata, 
-                                design= ~ dex, tidy = TRUE)
-            keep <- rowSums(counts(dds) >= 10) >= 2
-            dds <- dds[keep,]
-            dds <- DESeq(dds)
-            res <- results(dds,alpha = 0.05, pAdjustMethod = 'BH')
-            res 
+# change Ensembl_gene_ID column with the correspoding gene symbols and rename the column
+soft$Ensembl_gene_ID <- geneID_soft$SYMBOL
+stiff$Ensembl_gene_ID <- geneID_stiff$SYMBOL
 
-          # We store the results in a data frame and label the differentially expressed genes with UP or DOWN, 
-          # if the gene is up regulated or down regulated, respectively.
-            
-            de <- data.frame(res)
-            de$diffexpressed <- "NO"
-            de$diffexpressed[de$log2FoldChange > 2 & de$padj < 0.05] <- "UP" 
-            de$diffexpressed[de$log2FoldChange < -2 & de$padj < 0.05] <- "DOWN"
+colnames(soft) <- c('Gene_symbol', colnames(soft)[-1])
+colnames(stiff) <- c('Gene_symbol', colnames(stiff)[-1])
 
-    # Vulcano Plot 🌋
-        # To visualize the results we use a VulcanPlot 
-            if (!require("pacman")) install.packages("pacman")
-                pacman::p_load(here,  
-                        tidyverse, 
-                        janitor,     # Cleaning column names  
-                        scales,      # Transform axis scales   
-                        ggrepel)     # Optimise plot label separation  
+# Remove all the genes we are not interested in: ribosomial protein genes, mitochondrial genes and others
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'RP'))),]
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'RP'))),]
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'MRPL'))),]
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'MRPL'))),]
 
-        # Polishing the data for later use…            
-            dati <- de %>%
-                    mutate(gene_type = case_when(log2FoldChange >= 2 &  padj <= 0.05 ~ "up", 
-                                                log2FoldChange <= -2 &  padj <= 0.05 ~ "down", 
-                                                TRUE ~ "ns"))   
-            count(dati, gene_type)
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'LOC'))),]
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'LINC'))),]
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'MIR'))),]
+soft <- soft[-(which(startsWith(soft$Gene_symbol, 'SNORD'))),]
+
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'LOC'))),]
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'LINC'))),]
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'MIR'))),]
+stiff <- stiff[-(which(startsWith(stiff$Gene_symbol, 'SNORD'))),]
+
+# DE analysis
+d <- data.frame(soft[,c(5, 6, 7)], stiff[, c(5, 6, 7)])
+countData <- as.matrix(d)
+rownames(countData) <- soft$Gene_symbol
+
+y <- DGEList(counts=countData)
+y
+
+rownames(y$samples) <- as.factor(c('soft1', 'soft2', 'soft3', 'stiff1', 'stiff2', 'stiff3'))
+
+group <- as.factor(c('soft', 'soft', 'soft', 'stiff', 'stiff', 'stiff'))
+y$samples$group <- group
+y
+
+y$samples$dex <- as.factor(c(rep(control, 3), rep(treatment, 3)))
+y
+
+keep.exprs <- filterByExpr(y, group=group)
+y <- y[keep.exprs, keep.lib.sizes=FALSE]
+dim(y)
+# after filtering out those genes with very few counts in the different sample, 15027 genes remain
+
+y <- calcNormFactors(y, method = "TMM")
+y
+
+design <- model.matrix(~0 + group, data=y$samples)
+colnames(design) <- levels(y$samples$group)
+design
+
+y <- estimateDisp(y, design)
+
+fit <- glmQLFit(y, design)
+
+qlf <- glmQLFTest(fit, contrast = c(-1,1))
+
+summary(decideTests(qlf, p.value=0.01, lfc=1))
+# 397 up in stiff, 338 up in soft, 14292 don't change
+
+table <- topTags(qlf, n=10000000, adjust.method = "BH", sort.by = "PValue", p.value = 1)
+
+table <- as.data.frame(table)
+
+table <- table[which((table$logFC > 1 | table$logFC < -1) & table$FDR <0.01),]
+
+table <- cbind(table, upSTIFF = "", upSOFT = "")
+for (i in 1:nrow(table)) {
+  if (table[i,]$logFC > 1) {table[i,]$upSTIFF <- rownames(table)[i]} else
+  {table[i,]$upSOFT <- rownames(table)[i]}
+}
+head(table)
+
+table <- table[-(which(table$logCPM<0)),]
 
 
-            cols <- c("up" = "#ffad73", "down" = "#26b3ff", "ns" = "grey") 
-            sizes <- c("up" = 2, "down" = 2, "ns" = 1) 
-            alphas <- c("up" = 1, "down" = 1, "ns" = 0.5)
+# Load prototypical information about the patients and their gene expression profile
+pheno_data <- TCGA.KIRC.GDC_phenotype
+geno_data <- TCGA.KIRC.htseq_fpkm
 
-        # Using ggplot2 for the VulcanPLot
-            v <- ggplot(data = dati, aes(x = log2FoldChange,
-                    y = -log10(padj),
-                    fill = gene_type,    
-                    size = gene_type,
-                    alpha = gene_type)) + 
-                geom_point(shape = 21, # Specify shape and colour as fixed local parameters    
-                            colour = "black") + 
-                geom_hline(yintercept = -log10(0.05),
-                            linetype = "dashed") + 
-                
-                geom_vline(xintercept = c(2, -2),
-                            linetype = "dashed") +
-                scale_fill_manual(values = cols) + # Modify point colour
-                scale_size_manual(values = sizes) + # Modify point size
-                scale_alpha_manual(values = alphas) + # Modify point transparency
-                scale_x_continuous(breaks = c(seq(-10, 10, 2)),       
-                                    limits = c(-10, 10))+
-                ylim(0,125)
-            v
+# Define the sequenced patients from the genomic data set
+sequenced_patients <- colnames(geno_data)
+sequenced_patients_phenoinfo <- intersect(gsub('-','.',pheno_data$submitter_id.samples),sequenced_patients)
 
--------------------------------------------------------------------------------------------------------------------------------------------
-        Working on TGCA-KIRC Project data
--------------------------------------------------------------------------------------------------------------------------------------------
+# The geno_data and pheno_data datasets share information about 607 patients
+# We store the phenotype of only the shared patients
+pheno_data <-pheno_data[which(gsub('-','.',pheno_data$submitter_id.samples) %in% sequenced_patients_phenoinfo),]
 
-# Polishing and checking the data 🔎
-    # Now we want to prepare the TGCA-KIRC data for later use in computing the MeCo refined scores
+# Also we want to keep only the data of Primary Tumor samples. 
+pheno_data <- pheno_data[-(which(pheno_data$sample_type.samples != 'Primary Tumor')),]
 
-    # Load the TCGA-KIRC.htseq_fpkm dataset. For each patient we have the expression level of almost all the genes.
-    # Also load the phenotype dataset of the TCGA-KIRC project. 
+which(pheno_data$tumor_stage.diagnoses=='not reported') 
+submitter_not_reported <- pheno_data$submitter_id.samples[which(pheno_data$tumor_stage.diagnoses=='not reported')]
+pheno_data <- pheno_data[-c(115, 423, 504),] # Those are the index of the patients that we want to discard. 
+geno_data[,'TCGA.B4.5838.01A'] <- NULL 
+geno_data[,'TCGA.MM.A563.01A'] <- NULL 
+geno_data[,'TCGA.BP.4798.01A'] <- NULL 
 
-        geno_data <- read.delim("TCGA-KIRC.htseq_fpkm.tsv")     #importing manually the dataset may be more convenient due to its size 
-        pheno_data <- read.delim("TCGA-KIRC.GDC_phenotype.tsv")
-        
-    # Define the sequenced patients from the genomic data set
-        sequenced_patients <- colnames(geno_data)
-        all <- intersect(gsub('-','.',pheno_data$submitter_id.samples),sequenced_patients)
-        all[seq(1,10)]
+# Updating all after polishing geno and pheno datasets 
+patients_phenoinfo <- intersect(gsub('-','.',pheno_data$submitter_id.samples),sequenced_patients)
 
-    # The geno_data and pheno_data datasets share information about 607 patients
-    # We store the phenotype of only the shared patients
-        pheno_data <-pheno_data[which(gsub('-','.',pheno_data$submitter_id.samples) %in% all),]
+# find the patients for which we have the expression profile but not prototypical information and remove them from 
+# the geno dataset
+only_pheno <- colnames(geno_data)[-1][which(colnames(geno_data)[-1] %notin% patients_phenoinfo)]
 
-    # Also we want to keep only the data of Primary Tumor samples. 
-        pheno_data <- pheno_data[-(which(pheno_data$sample_type.samples != 'Primary Tumor')),]
+for (i in only_pheno) {
+  geno_data[,i] <- NULL
+}
 
-        # Double checking
-            which(pheno_data$sample_type.samples != 'Primary Tumor')
+# convert the gene Ensembl_IDs in geno_data in the corresponding gene symbols and remove all the genes we are not interested in
+geno_data$Ensembl_ID <- gsub("\\..*","",geno_data$Ensembl_ID)
+geneID_geno <- ensembldb::select(EnsDb.Hsapiens.v86, keys= geno_data$Ensembl_ID, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+geno_data <- geno_data[-c(which(geno_data$Ensembl_ID %notin% geneID_geno$GENEID)),]
+geno_data$Ensembl_ID <- geneID_geno$SYMBOL
 
-    # For some patients may not be reported the stage. 
-    # We must discard them for the final dataset. 
-        which(pheno_data$tumor_stage.diagnoses=='not reported') 
-        submitter_not_reported <- pheno_data$submitter_id.samples[which(pheno_data$tumor_stage.diagnoses=='not reported')]
-        pheno_data <- pheno_data[-c(115, 423, 504),] # Those are the index of the patients that we want to discard. 
-        geno_data[,'TCGA.B4.5838.01A'] <- NULL 
-        geno_data[,'TCGA.MM.A563.01A'] <- NULL 
-        geno_data[,'TCGA.BP.4798.01A'] <- NULL 
+colnames(geno_data) <- c('Gene_symbol', colnames(geno_data)[-1])
 
-    # Updating all after polishing geno and pheno datasets 
-        all <- intersect(gsub('-','.',pheno_data$submitter_id.samples),sequenced_patients)
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'RP'))),]
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'MRPL'))),]
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'LOC'))),]
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'LINC'))),]
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'MIR'))),]
+geno_data <- geno_data[-(which(startsWith(geno_data$Gene_symbol, 'SNORD'))),]
 
-    # We must remove the version number from the Ensembl.id for later use 
-        Ensembl_id <- geno_data[,1]
-        Ensembl_id <- gsub("\\.[0-9]*$", "", Ensembl_id)
+# extract the lists of genes significantly up or down regulated
+geno_data_down <- table$upSOFT[table$upSOFT != ""]
+geno_data_up <- table$upSTIFF[table$upSTIFF != ""]
 
-    # Finally update the geno_data with only the patient id of primary tumoral samples, with a defined stage and keeping the Ensembl id
-        geno_data <- data.frame(Ensembl_id, geno_data[,which(colnames(geno_data) %in% all)])
-        sequenced_patients <- colnames(geno_data)[-1]
+# compute the log2 transformation of all the expression values 
+col1 <- geno_data[,1]
+geno_data2 <- log2(geno_data[,-1]+1)
+geno_data2 <- cbind(col1, geno_data2)
 
--------------------------------------------------------------------------------------------------------------------------------------------
-        Calculating the MeCo Score 
--------------------------------------------------------------------------------------------------------------------------------------------
+# compute the MeCo score for each patient as the difference between his mean expression value of the 
+# up regulated genes and his mean expression value of the down regulated ones
+MecoScore <- data.frame(patients = gsub('-','.',pheno_data$submitter_id.samples))
+MecoScore$MeSc <- NA
 
-# We first propose a general MeCo score 📊
-    # This way of computing the MeCo does not take in consideration the impact of each gene on a specific pathway. 
-    # So it is quite general and later will be refined using Pathway Analysis. 
-    # It is useful to get a general understanding of the mechanical conditioning of the cell due to the substrate stiffness. 
+for (i in MecoScore$patients){
+  mean_up <- mean(geno_data2[which(geno_data2[,1] %in% geno_data_up),i])
+  mean_down <- mean(geno_data2[which(geno_data2[,1] %in% geno_data_down),i])
+  MecoScore[which(MecoScore$patients == i),]$MeSc <- mean_up - mean_down
+}
 
-# UP and DOWN regulated genes 🔺 🔻
-      # First of all we must create a list of UP and DOWN regulated genes using the results of DGE. 
-    
-        UP <- rownames(de[which(de$diffexpressed == 'UP'),])
-        DOWN <- rownames(de[which(de$diffexpressed == 'DOWN'),])
+pheno_data$submitter_id.samples <- gsub('-','.',pheno_data$submitter_id.samples)
 
-      # Than we use the lists to obtain two distinct expression matrix for genes UP and DOWN regulated. 
-      # Both matrix are linked by the patient id. 
-    
-        geno_data_down <- geno_data[which(geno_data$Ensembl_id %in% DOWN), ]
-        geno_data_up <- geno_data[which(geno_data$Ensembl_id %in% UP), ]
 
-# Finally calculating the genral MeCo score for each patient ⭐️
-        
-        MecoScore <- data.frame(sequenced_patients) 
-        MecoScore$MeSc <- NA
+# Refining the MeCo
+# Retrieving the Up and Down regulated genes and saving them in a excel file.
+library(writexl)
 
-        for (i in 1:nrow(MecoScore)){
-            MecoScore$MeSc[i] <- mean(as.numeric(geno_data_up[,i+1])) - mean(as.numeric(geno_data_down[,i+1]))
+write_xlsx(data.frame(geno_data_up), 'Up regulated genes in Stiff.xlsx')
+write_xlsx(data.frame(geno_data_down), 'Down regulated genes in Stiff.xlsx')
+
+# Working on Up regulated genes in STIFF
+# Loading the GO_list obtained through Metascape
+GOStiff <- read.csv('GO_AllLists_Stiff.csv')
+
+# Filter out annotations with a LogP-value higher than -10
+GOStiff <- GOStiff[GOStiff$LogP < -10, ]
+
+library(tidyr)
+# We need to split the Hit column into sub_columns, one for each gene. 
+columns <- paste0("M_",seq(1, 50))
+GOStiff <- separate(GOStiff, Hits, columns)
+
+# At this point we can define refined MeCos based on common GOParental therms: 
+# Having an idea of unique GO parent therms
+GO_parentals <- (GOStiff$PARENT_GO)
+
+genes_col <-  grep('M_', colnames(GOStiff))
+
+for (GOparental in GO_parentals){
+    GO_df <- GOStiff[GOStiff$PARENT_GO == GOparental,] 
+    gene_list <- NA
+    for (row in seq(1, nrow(GO_df))){
+        for (gene in genes_col){
+          ifelse(GO_df[row, gene] %in% gene_list, next, gene_list <- c(gene_list, (GO_df[row, gene]))) 
         }
+    } 
+    assign(paste0("GLT_",GOparental), gene_list)
+}
 
-        summary(MecoScore)
+# Working on Down regulated genes in STIFF (so Up regulated genes in SOFT)
 
-# Computing the general MeCo score for each stage 💻
-        
-        # Check presence of stage i patients in the genomic dataset
-            # takes the first column containing the submitter id sample
-                samples_stage1 <- pheno_data[which(pheno_data$tumor_stage.diagnoses=='stage i'),1] 
-            # replace - with . as patients are reported differently in the two datasets
-                samples_stage1 <- gsub('-','.', samples_stage1)
-            # get the list of patients for which we have stage 1 and gene expression data
-                sequenced_stage1 <- intersect(sequenced_patients,samples_stage1)
+#Loading the GO_list obtained through Metascape
+GOSoft <- read.csv('GO_AllList_Soft.csv')
 
-        # Check presence of stage ii patients in the genomic dataset
-            samples_stage2 <- pheno_data[which(pheno_data$tumor_stage.diagnoses=='stage ii'),1]
-            samples_stage2 <- gsub('-','.', samples_stage2)
-            sequenced_stage2 <- intersect(sequenced_patients,samples_stage2)
+# Filter out annotations with a LogP-value higher than -10
+GOSoft <- GOSoft[GOSoft$LogP < -10, ]
 
-        # Check presence of stage iii patients in the genomic dataset
-            samples_stage3 <- pheno_data[which(pheno_data$tumor_stage.diagnoses=='stage iii'),1]
-            samples_stage3 <- gsub('-','.', samples_stage3)
-            sequenced_stage3 <- intersect(sequenced_patients,samples_stage3)
+# We need to split the Hit column into sub_columns, one for each gene. 
+columns <- paste0("M_",seq(1, 50))
+GOSoft <- separate(GOSoft, Hits, columns)
 
-        # Check presence of stage iv patients in the genomic dataset
-            samples_stage4 <- pheno_data[which(pheno_data$tumor_stage.diagnoses=='stage iv'),1]
-            samples_stage4 <- gsub('-','.', samples_stage4)
-            sequenced_stage4 <- intersect(sequenced_patients,samples_stage4)
+# At this point we can define refined MeCos based on common GOParental therms: 
+# Having an idea of unique GO parent therms
+GO_parentals <- (GOSoft$PARENT_GO)
 
-        # General MeCo for: 
-        # stage i
-            mean(MecoScore[which(MecoScore$sequenced_patients %in% sequenced_stage1), 'MeSc'])
+genes_col <-  grep('M_', colnames(GOSoft))
 
-        # stage ii
-            mean(MecoScore[which(MecoScore$sequenced_patients %in% sequenced_stage2), 'MeSc'])
+for (GOparental in GO_parentals){
+  GO_df <- GOSoft[GOSoft$PARENT_GO == GOparental,] 
+  gene_list <- NA
+  for (row in seq(1, nrow(GO_df))){
+    for (gene in genes_col){
+      ifelse(GO_df[row, gene] %in% gene_list, next, gene_list <- c(gene_list, (GO_df[row, gene]))) 
+    }
+  } 
+  assign(paste0("GLO_",GOparental), gene_list)
+}
 
-        # stage iii
-            mean(MecoScore[which(MecoScore$sequenced_patients %in% sequenced_stage3), 'MeSc'])
+# Computing the MeCo refined Stimulus
 
-        # stage iv
-            mean(MecoScore[which(MecoScore$sequenced_patients %in% sequenced_stage4), 'MeSc'])
+MecoScore$MR_Stimulus <- NA
 
--------------------------------------------------------------------------------------------------------------------------------------------
-        Refining the Meco
--------------------------------------------------------------------------------------------------------------------------------------------
+for (i in MecoScore$patients){
+  mean_up <- mean(geno_data2[which(geno_data2[,1] %in% `GLT_19_GO:0050896 response to stimulus`),i])
+  mean_down <- mean(geno_data2[which(geno_data2[,1] %in% `GLO_19_GO:0050896 response to stimulus`),i])
+  MecoScore[which(MecoScore$patients == i),]$MR_Stimulus <- mean_up - mean_down
+}
 
-# We performed pathway analysis with Metascape. 
-# Given a list of genes, Metascape analyzes in which pathway each gene is involved and returns the most influenced pathways. 
-    # Metascape 📈
-        # We need an excel file with all the differentialy expressed genes
-              
-            install.packages("writexl")
-            library(writexl)
 
-            DifferentialExpressedGenes <- c(DOWN,UP) 
-            write_xlsx(data.frame(DifferentialExpressedGenes), 'PathwayAnalysis.xlsx')
+# Computing the MeCo refined Regulation
 
-        # At this point we must use Metascape (https://metascape.org/gp/index.html)
-        # And save the results in a excel file for later use. 
-    
-    # Manually curated Pathways 🛣
-        # Since Metascape gives us a huge number of pathways in which the differentialy expressed genes are involved,
-        # we need to manually curate the principal pathways in which we are interested. 
-        # We chose to use the 5 most representative pathways in our sample of CAF and 
-        # that are strictly involved in tumoral progression. 
+MecoScore$MR_Regulation <- NA
 
-        # So we focused our attention on: 
-        # • ECM (ExtraCellular Matrix)
-        # • Proliferation
-        # • Chemotaxis
-        # • Inflammation
-        # • Antitumoral mechanism 
+for (i in MecoScore$patients){
+  mean_up <- mean(geno_data2[which(geno_data2[,1] %in% `GLT_19_GO:0050789 regulation of biological process`),i])
+  mean_down <- mean(geno_data2[which(geno_data2[,1] %in% `GLO_19_GO:0050789 regulation of biological process`),i])
+  MecoScore[which(MecoScore$patients == i),]$MR_Regulation <- mean_up - mean_down
+}
 
-        # Get all the distinct pathways 
-            metascape_result <- read_excel("metascape_result.xlsx") # PLease, insert the name of your file! 
-            distinct_pathways <- colnames(metascape_result)[-seq(1, 15)]
-            head(distinct_pathways)
 
-        # For each pathway get the list of genes.
-        # We store this information in a List of pathways made of Lists of genes (List of Lists, aka LoL) 
+# Computing the MeCo refined Developmental
 
-            sum(as.integer(metascape_result$`R-HSA-1474244 Extracellular matrix organizat`))
+MecoScore$MR_Developmental <- NA
 
-            LoL <- list()
-
-            for(i in seq(1, length(distinct_pathways))){
-            LoL[i] <- metascape_result[which(metascape_result[,(15 + i)] == '1.0'), 'DifferentialExpressedGenes']
-            }
-
-            names(LoL) <- distinct_pathways
-
-        # manually curate the main pathways (yeah! more fun!)
-            ECM_path <- unique(c(LoL$`M5884 NABA CORE MATRISOME`,
-                                LoL$`R-HSA-1474244 Extracellular matrix organizat`, 
-                                LoL$`GO:0030198 extracellular matrix organizat`, 
-                                LoL$`M5882 NABA PROTEOGLYCANS`, 
-                                LoL$`R-HSA-1474228 Degradation of the extracellul`, 
-                                LoL$`R-HSA-2129379 Molecules associated with elas`))
-                    
-            Proliferation_path <- unique(c(LoL$`GO:0001501 skeletal system development`, 
-                                        LoL$`GO:0061061 muscle structure development`))
-
-            Chemotaxis_path <- LoL$`GO:0006935 chemotaxis`
-
-            Inflammatory_path <- LoL$`GO:0006954 inflammatory response`
-
-            Antitumoral_path <- LoL$`GO:0008285 negative regulation of cell po`
-            
-        # For each pathway subdivided the genes in UP and DOWN regulated according to the
-        # Differential Gene Expression analysis on CAFs 
-            ECM_path_Down <- intersect(ECM_path, DOWN)
-            ECM_path_Up <- intersect(ECM_path, UP)
-
-            Proliferation_path_Down <- intersect(Proliferation_path, DOWN)
-            Proliferation_path_Up <- intersect(Proliferation_path, UP)
-
-            Chemotaxis_path_Down <- intersect(Chemotaxis_path, DOWN)
-            Chemotaxis_path_Up <- intersect(Chemotaxis_path, UP)
-
-            Inflammatory_path_Down <- intersect(Inflammatory_path, DOWN)
-            Inflammatory_path_Up <- intersect(Inflammatory_path, UP)
-
-            Antitumoral_path_Down <- intersect(Antitumoral_path, DOWN)
-            Antitumoral_path_Up <- intersect(Antitumoral_path, UP)
-
-    # Computing the MeCo refined scores ⭐️⭐️⭐️
-        # We call it refined because it is pathway based, 
-        # so it is more easily interpretable and also more meaningful for assessing the role of 
-        # mechanotransduction on tumoral cells. 
-        
-        # ECM MeCo refined
-            geno_data_ECMdown <- geno_data[which(geno_data$Ensembl_id %in% ECM_path_Down), ]
-            geno_data_ECMup <- geno_data[which(geno_data$Ensembl_id %in% ECM_path_Up), ]
-
-            MecoScoreECM <- data.frame(sequenced_patients) 
-            MecoScoreECM$MeSc <- NA
-
-            for (i in 1:nrow(MecoScoreECM)){
-            MecoScoreECM$MeSc[i] <- mean(as.numeric(geno_data_ECMup[,i+1])) - mean(as.numeric(geno_data_ECMdown[,i+1]))
-            }
-
-            summary(MecoScoreECM)
-    
-        # Proliferation MeCo refined
-            geno_data_down <- geno_data[which(geno_data$Ensembl_id %in% Proliferation_path_Down), ]
-            geno_data_up <- geno_data[which(geno_data$Ensembl_id %in% Proliferation_path_Up), ]
-
-            MecoScorePro <- data.frame(sequenced_patients) 
-            MecoScorePro$MeSc <- NA
-
-            for (i in 1:nrow(MecoScorePro)){
-            MecoScorePro$MeSc[i] <- mean(as.numeric(geno_data_up[,i+1])) - mean(as.numeric(geno_data_down[,i+1]))
-            }
-
-            summary(MecoScorePro)
-
-        # Chemotaxis MeCo refined
-            geno_data_down <- geno_data[which(geno_data$Ensembl_id %in% Chemotaxis_path_Down), ]
-            geno_data_up <- geno_data[which(geno_data$Ensembl_id %in% Chemotaxis_path_Up), ]
-
-            MecoScoreCh <- data.frame(sequenced_patients) 
-            MecoScoreCh$MeSc <- NA
-
-            for (i in 1:nrow(MecoScoreCh)){
-            MecoScoreCh$MeSc[i] <- mean(as.numeric(geno_data_up[,i+1])) - mean(as.numeric(geno_data_down[,i+1]))
-            }
-
-            summary(MecoScoreCh)
-
-        # Inflammation MeCo refined
-
-            geno_data_down <- geno_data[which(geno_data$Ensembl_id %in% Inflammatory_path_Down), ]
-            geno_data_up <- geno_data[which(geno_data$Ensembl_id %in% Inflammatory_path_Up), ]
-
-            MecoScoreInf <- data.frame(sequenced_patients) 
-            MecoScoreInf$MeSc <- NA
-
-            for (i in 1:nrow(MecoScoreInf)){
-            MecoScoreInf$MeSc[i] <- mean(as.numeric(geno_data_up[,i+1])) - mean(as.numeric(geno_data_down[,i+1]))
-            }
-
-            summary(MecoScoreInf)
-
-        # Antitumoral mechanism MeCo refined 
-            geno_data_down <- geno_data[which(geno_data$Ensembl_id %in% Antitumoral_path_Down), ]
-            geno_data_up <- geno_data[which(geno_data$Ensembl_id %in% Antitumoral_path_Up), ]
-
-            MecoScoreAnt <- data.frame(sequenced_patients) 
-            MecoScoreAnt$MeSc <- NA
-
-            for (i in 1:nrow(MecoScoreAnt)){
-            MecoScoreAnt$MeSc[i] <- mean(as.numeric(geno_data_up[,i+1])) - mean(as.numeric(geno_data_down[,i+1]))
-            }
-
-            summary(MecoScoreAnt)
--------------------------------------------------------------------------------------------------------------------------------------------
-           # Refining pathways for ECM and Proliferation
-           # REMOVEDE R-HSA elastic fibers & ECM organizations
-           ECM_path <- unique(c(LoL$`M5884 NABA CORE MATRISOME`,
-                                LoL$`GO:0030198 extracellular matrix organizat`, 
-                                LoL$`M5882 NABA PROTEOGLYCANS`, 
-                                LoL$`R-HSA-1474228 Degradation of the extracellul`))
-            
-            # Added MAP kinese                  
-            Proliferation_path <- unique(c(LoL$`GO:0001501 skeletal system development`, 
-                                           LoL$`GO:0061061 muscle structure development`, 
-                                           LoL$`GO:0043410 positive regulation of MAPK ca`))
-            
+for (i in MecoScore$patients){
+  mean_up <- mean(geno_data2[which(geno_data2[,1] %in% `GLT_19_GO:0032502 developmental process`),i])
+  mean_down <- mean(geno_data2[which(geno_data2[,1] %in% `GLO_19_GO:0032502 developmental process`),i])
+  MecoScore[which(MecoScore$patients == i),]$MR_Developmental <- mean_up - mean_down
+}

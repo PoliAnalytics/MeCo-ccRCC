@@ -362,3 +362,12 @@ ggplot(data4, aes(x = age, y = MeCo_reg, fill = age)) +
   scale_fill_brewer() +
   labs(title = "MeCo regulation distribution by age")
 
+# age distribution in the different stages
+data5 <- data.frame(age = surv_data$age, stage = surv_data$stage)
+
+ggplot(data5, aes(x = stage, y = age, fill = stage)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "Age distribution by stage")
+

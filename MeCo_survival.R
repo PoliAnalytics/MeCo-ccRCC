@@ -382,6 +382,23 @@ plot(fit, conf.int = F,
 grid()
 legend('topright', legend=unique(summary(fit)$strata), col=1:3, lwd=2, lty=1, title='Strata k')
 
+# Predicted adjusted survival probability from a stratified Cox model - MeCo 
+df_stage <- with(surv_data,
+                  data.frame(age = c(60,60,60),
+                             MeCo = c(0.05,0.08,0.13))
+)
+
+fit.df_stage <- survfit(mod.cox.strata, newdata = df_stage)
+fit.df_stage
+
+plot(fit.df_stage, 
+     col=c("dodgerblue2","navy","darkmagenta"), lwd=2, lty=1,
+     xlab='Time [days]', ylab='Survival Probability',
+     main='Adjusted Survival Probability Plot')
+grid()
+legend('topright', c("MeCo = 0.05", "MeCo = 0.08", "MeCo = 0.13"),
+       lty=c(1,1,1), lwd=c(2,2,2), cex=1,col=c("dodgerblue2","navy","darkmagenta"))
+
 
 # stratified cox model by stage using MeCo regulation: build a different baseline hazard function for 
 # each single level of stage 
@@ -403,6 +420,23 @@ plot(fit2, conf.int = F,
      main='Baseline estimated survival probabilities')
 grid()
 legend('topright', legend=unique(summary(fit2)$strata), col=1:4, lwd=2, lty=1, title='Strata k')
+
+# Predicted adjusted survival probability from a stratified Cox model - MeCo regulation
+df_stage_reg <- with(surv_data,
+                 data.frame(age = c(60,60,60),
+                            MeCo_reg = c(0.05,0.08,0.13))
+)
+
+fit.df_stage_reg <- survfit(mod.cox.strata2, newdata = df_stage_reg)
+fit.df_stage_reg
+
+plot(fit.df_stage_reg, 
+     col=c("dodgerblue2","navy","darkmagenta"), lwd=2, lty=1,
+     xlab='Time [days]', ylab='Survival Probability',
+     main='Adjusted Survival Probability Plot')
+grid()
+legend('bottomleft', c("MeCo_reg = 0.05", "MeCo_reg = 0.08", "MeCo_reg = 0.13"),
+       lty=c(1,1,1), lwd=c(2,2,2), cex=1,col=c("dodgerblue2","navy","darkmagenta"))
 
 
 # fit a Exponential AFT model with MeCo:

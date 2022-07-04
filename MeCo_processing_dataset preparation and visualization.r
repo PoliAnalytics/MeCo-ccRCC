@@ -371,3 +371,44 @@ ggplot(data5, aes(x = stage, y = age, fill = stage)) +
   scale_fill_brewer() +
   labs(title = "Age distribution by stage")
 
+# MeCo distribution by status
+data6 <- data.frame(status = surv_data$status, MeCo = surv_data$MeCo)
+
+data6$status <- as.factor(data6$status)
+levels(data6$status) <- c('alive','dead')
+ggplot(data6, aes(x = status, y = MeCo, fill = status)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo distribution by status")
+
+# MeCo regulation distribution by status
+data7 <- data.frame(status = surv_data$status, MeCo_reg = surv_data$MeCo_reg)
+
+data7$status <- as.factor(data7$status)
+levels(data7$status) <- c('alive','dead')
+ggplot(data7, aes(x = status, y = MeCo_reg, fill = status)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo regulation distribution by status")
+
+# MeCo distribution by gender
+data8 <- data.frame(gender = surv_data$gender, MeCo = surv_data$MeCo)
+
+ggplot(data8, aes(x = gender, y = MeCo, fill = gender)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo distribution by gender")
+
+# MeCo regulation distribution by gender
+data9 <- data.frame(gender = surv_data$gender, MeCo_reg = surv_data$MeCo_reg)
+
+ggplot(data9, aes(x = gender, y = MeCo_reg, fill = gender)) +
+  geom_violin(trim = F) +
+  geom_boxplot(width = 0.07) +
+  scale_fill_brewer() +
+  labs(title = "MeCo regulation distribution by gender")
+
+

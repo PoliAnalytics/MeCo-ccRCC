@@ -16,7 +16,6 @@ PVRE <- sigma2_b/(sigma2_b+sigma2_eps)
 PVRE
 # 32.8%
 
-quartz()
 dotplot(ranef(meco_mem))
 
 par(mfrow=c(1,2))
@@ -64,6 +63,22 @@ PVRE <- sigma2_b/(sigma2_b+sigma2_eps)
 PVRE
 #32%
 
+dotplot(ranef(meco_mem_reg))
+
+par(mfrow=c(1,2))
+plot(c(1:4), unlist(coef(meco_mem_reg)$stage[1]),
+     xlab='stage i', ylab=expression(beta[0]+b['0i']),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated random intercepts')
+abline(h=fixef(meco_mem_reg)[1], lty=2, col='red', lwd=2)
+legend(115, 3.34, legend=expression(paste('Fixed intercept ',beta[0])), lwd=2, lty=2, col='red', x.intersp=0.5)
+plot(c(1:4), unlist(coef(meco_mem_reg)$stage[2]),
+     xlab='stage i', ylab=expression(beta[1]),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated fixed slopes')
+abline(h=fixef(meco_mem_reg)[2], lty=2, col='red', lwd=2)
+legend(115, 0.147, legend=expression(paste('Fixed slope ',beta[1])), lwd=2, lty=2, col='red', x.intersp=0.5)
+
 # Assessing Assumption on the within-group errors
 plot(meco_mem_reg)
 
@@ -100,6 +115,21 @@ VPC
 # 30.4%
 
 dotplot(ranef(log_MEM))
+
+par(mfrow=c(1,2))
+plot(c(1:4), unlist(coef(log_MEM)$stage[1]),
+     xlab='stage i', ylab=expression(beta[0]+b['0i']),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated random intercepts')
+abline(h=fixef(log_MEM)[1], lty=2, col='red', lwd=2)
+legend(115, 3.34, legend=expression(paste('Fixed intercept ',beta[0])), lwd=2, lty=2, col='red', x.intersp=0.5)
+plot(c(1:4), unlist(coef(log_MEM)$stage[2]),
+     xlab='stage i', ylab=expression(beta[1]),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated fixed slopes')
+abline(h=fixef(log_MEM)[2], lty=2, col='red', lwd=2)
+legend(115, 0.147, legend=expression(paste('Fixed slope ',beta[1])), lwd=2, lty=2, col='red', x.intersp=0.5)
+
 
 # Assessing Assumption on the Random Effects
 qqnorm(unlist(ranef(log_MEM)), main='Normal Q-Q Plot - Random Intercept for stage')
@@ -141,6 +171,21 @@ VPC
 # 29.6%
 
 dotplot(ranef(log_MEM_reg))
+
+par(mfrow=c(1,2))
+plot(c(1:4), unlist(coef(log_MEM_reg)$stage[1]),
+     xlab='stage i', ylab=expression(beta[0]+b['0i']),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated random intercepts')
+abline(h=fixef(log_MEM_reg)[1], lty=2, col='red', lwd=2)
+legend(115, 3.34, legend=expression(paste('Fixed intercept ',beta[0])), lwd=2, lty=2, col='red', x.intersp=0.5)
+plot(c(1:4), unlist(coef(log_MEM_reg)$stage[2]),
+     xlab='stage i', ylab=expression(beta[1]),
+     pch=19, lwd=2, col='darkblue',
+     main='Estimated fixed slopes')
+abline(h=fixef(log_MEM_reg)[2], lty=2, col='red', lwd=2)
+legend(115, 0.147, legend=expression(paste('Fixed slope ',beta[1])), lwd=2, lty=2, col='red', x.intersp=0.5)
+
 
 # Assessing Assumption on the Random Effects
 qqnorm(unlist(ranef(log_MEM_reg)), main='Normal Q-Q Plot - Random Intercept for stage')

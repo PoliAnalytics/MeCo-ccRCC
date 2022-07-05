@@ -212,20 +212,29 @@ ggforest(cox.meco, data=surv_data)
 # being of stage 3 increases the risk of death of 2.5 times with respect to being if stage 1
 # being of stage 4 increases the risk of death of 6.73 times with respect to being if stage 1
 
+# since the MeCo score varies between -0.3449 and 0.4179 talking about a unitary increase doesn't
+# make sense but we have to look at the effect of an increase of 0.01 of the score since it
+# is much more plausible 
+
+exp(-2.371970*0.01)
+# an increase of the MeCo score of 0.01 decreases the risk of death of 2.4%
+
 # cox model with only MeCo score as covariate
 cox.meco_only <- coxph(Surv(time, status) ~ MeCo, data = surv_data)
 summary(cox.meco_only)
 print(cox.meco_only)
 ggforest(cox.meco_only, data=surv_data)
-# MeCo is a significant protective factor: its unitary increase decreases the risk of death of 96%
+exp(0.01*cox.meco_only$coefficients)
+# MeCo is a significant protective factor: its increase of 0.01 decreases the risk of death of 3%
 
 # cox model with only MeCo regulation score as covariate
 cox.mecoreg_only <- coxph(Surv(time, status) ~ MeCo_reg, data = surv_data)
 summary(cox.mecoreg_only)
 print(cox.mecoreg_only)
 ggforest(cox.mecoreg_only, data=surv_data)
-# MeCo regulation is a significant protective factor: its unitary increase decreases the risk of 
-# death of 94%
+exp(0.01*cox.mecoreg_only$coefficients)
+# MeCo regulation is a significant protective factor: its increase of 0.01 decreases the risk of 
+# death of 2.8%
 
 # include Meco regulation with only significant covariates according to KM
 cox.meco2<- coxph(Surv(time, status) ~ age+stage+MeCo_reg, data = surv_data)
@@ -238,6 +247,12 @@ ggforest(cox.meco2, data=surv_data)
 # being of stage 3 increases the risk of death of 2.42 times with respect to being if stage 1
 # being of stage 4 increases the risk of death of 6.44 times with respect to being if stage 1
 
+# since the MeCo regulation score varies between -0.62646 and 0.45316 talking about a unitary increase doesn't
+# make sense but we have to look at the effect of an increase of 0.01 of the score since it
+# is much more plausible 
+
+exp(-2.011810*0.01)
+# an increase of the MeCo regulation score of 0.01 decreases the risk of death of 2%
 
 # Predicted adjusted survival probability from a Cox model - stage 3 and MeCo general
 df_stage3 <- with(surv_data,
@@ -365,9 +380,10 @@ diag.ph2
 # level of stage 
 mod.cox.strata <- coxph(Surv(time, status) ~ age + MeCo + strata(stage) , data =  surv_data)
 summary(mod.cox.strata)
+exp(0.01*-2.31770)
 # both age and MeCo result statistically significant
 # unitary increase of age increases the risk of death of 3.6%
-# unitary increase of MeCo reduces the risk of death of 90%
+# 0.01 increase of MeCo reduces the risk of death of 2.3%
 
 test.ph.strata <- cox.zph(mod.cox.strata)
 test.ph.strata
@@ -399,14 +415,14 @@ grid()
 legend('topright', c("MeCo = 0.05", "MeCo = 0.08", "MeCo = 0.13"),
        lty=c(1,1,1), lwd=c(2,2,2), cex=1,col=c("dodgerblue2","navy","darkmagenta"))
 
-
 # stratified cox model by stage using MeCo regulation: build a different baseline hazard function for 
 # each single level of stage 
 mod.cox.strata2 <- coxph(Surv(time, status) ~ age + MeCo_reg + strata(stage) , data =  surv_data)
 summary(mod.cox.strata2)
-# both age and MeCo result statistically significant
+exp(0.01*-1.976300)
+# both age and MeCo regulation result statistically significant
 # unitary increase of age increases the risk of death of 3.6%
-# unitary increase of MeCo reduces the risk of death of 86%
+# 0.01 increase of MeCo regulation reduces the risk of death of 2%
 
 test.ph.strata2 <- cox.zph(mod.cox.strata2)
 test.ph.strata2
@@ -447,9 +463,11 @@ summary(fit_exp)
 
 exp(coef(fit_exp))
 # unitary increase of age contracts the survival time of 0.97 times
-# unitary increase of meco extends the survival time of 10.26 times
-# being of stage 3 wrt stage 1 contracts the survival time of 0.4 times
+# being of stage 3 wrt stage 1 contracts thesurvival time of 0.4 times
 # being of stage 4 wrt stage 1 contracts the survival time of 0.15 times
+
+exp(0.01*2.32783)
+# 0.01 increase of MeCo extends the survival time of 1.02 times
 
 # PH interpretation
 exp(-1 * coef(fit_exp))
@@ -484,9 +502,11 @@ summary(fit_exp)
 
 exp(coef(fit_exp))
 # unitary increase of age contracts the survival time of 0.96 times
-# unitary increase of meco extends the survival time of 7.6 times
 # being of stage 3 wrt stage 1 contracts the survival time of 0.4 times
 # being of stage 4 wrt stage 1 contracts the survival time of 0.15 times
+
+exp(0.01*2.02869)
+# 0.01 increase of MeCo regulation extends the survival time 1.02 times
 
 # PH interpretation
 exp(-1 * coef(fit_exp))
@@ -513,9 +533,11 @@ summary(fit_weibull)
 
 exp(coef(fit_weibull))
 # unitary increase of age contracts the survival time of 0.96 times
-# unitary increase of meco_reg extends the survival time of 10.56 times
 # being of stage 3 wrt stage 1 contracts the survival time of 0.4 times
 # being of stage 4 wrt stage 1 contracts the survival time of 0.14 times
+
+exp(0.01*2.35734)
+# 0.01 increase of MeCo extends the survival time of 1.02 times
 
 # PH interpretation
 shapeParameter <- 1 / fit_weibull$scale
@@ -544,9 +566,11 @@ summary(fit_weibull)
 
 exp(coef(fit_weibull))
 # unitary increase of age contracts the survival time of 0.96 times
-# unitary increase of meco extends the survival time of 7.8 times
 # being of stage 3 wrt stage 1 contracts the survival time of 0.4 times
 # being of stage 4 wrt stage 1 contracts the survival time of 0.15 times
+
+exp(0.01*2.05573)
+# 0.01 increase of MeCo regulation extends the survival time of 1.02 times
 
 # PH interpretation
 shapeParameter <- 1 / fit_weibull$scale
@@ -567,6 +591,3 @@ lines(xx, yy, col = "red", lwd = 2)
 legend("bottomleft", c("KM estimate", "95% CI KM estimate", 
                        "Survival function of Extreme Value distribution"), 
        lty = c(1,2,1), col = c(1,1,2), bty = "n")
-
-
-

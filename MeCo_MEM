@@ -150,10 +150,12 @@ round(CI_betas,3)
 # MeCo: CI [-5.547 -0.207] -> it decreases the probability of death in a significant way
 
 # To get to the odds and their 95% CI, we can take exponential of beta estimates:
-CI_OR <- exp(CI_betas)
-round(CI_OR,3)
-# unitary increase of age increases the probability of death of 4.9%, 
-# unitary increase of MeCo decreases the probability of death of 95%, 
+CI_OR_age <- exp(CI_betas)
+CI_OR_meco <- exp(0.01*CI_betas)
+round(CI_OR_age,3)
+# unitary increase of age increases the probability of death of 4.9%
+round(CI_OR_meco,3)
+# 0.01 increase of MeCo decreases the probability of death of 2.8%, 
 
 
 # Logistic Mixed Effects Models with Random intercept - MeCo regulation
@@ -206,7 +208,9 @@ round(CI_betas,3)
 # MeCo: CI [-4.411 -0.195] -> it decreases the probability of death in a significant way
 
 # To get to the odds and their 95% CI, we can take exponential of beta estimates:
-CI_OR <- exp(CI_betas)
-round(CI_OR,3)
-# unitary increase of age increases the probability of death of 4.9%, 
-# unitary increase of MeCo decreases the probability of death of 90%
+CI_OR_age <- exp(CI_betas)
+CI_OR_meco <- exp(0.01*CI_betas)
+round(CI_OR_age,3)
+# unitary increase of age increases the probability of death of 4.9%
+round(CI_OR_meco,3)
+# unitary increase of MeCo regulation decreases the probability of death of 2.3% 

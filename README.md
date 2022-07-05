@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------------------------------------
 ABOUT US 🌍
 ---------------------------------------------------------------------------------------------------
-Hi 👋, we are Carlo Manenti👨🏻‍🔬 (Doc in Biotechnology), Paola Maragno👩🏼‍🔬(Doc in Biomolecular Science and Technology), Gabriele Marchi👨🏻‍🔬 (Doc in Biology) and Alberto Pettenella👨🏻‍🔬 (Doc in Bioengineering).
+Hi 👋, we are Carlo Manenti👨🏻‍🔬 (Doc in Biotechnology), Paola Maragno👩🏼‍🔬(Doc in Biomolecular Science and Technology) and Alberto Pettenella👨🏻‍🔬 (Doc in Bioengineering).
 Our study focuses on  assessing  the role of mechanotransduction in clear cell Renal Cell Carcinoma (ccRCC) via computing __mechanical conditioning (MeCo) scores__.
 
 
@@ -23,21 +23,20 @@ Here we adapt the MeCo for ccRCC and we use it to assess the role of mechanical 
 ---------------------------------------------------------------------------------------------------
  AIM OF THE STUDY 💡
 ---------------------------------------------------------------------------------------------------
-The aim of the study is thus to firstly assess the power of MeCo to evaluate the condition of ccRCC patients. 
+The aim of this study is thus to firstly assess the power of MeCo to evaluate the condition of ccRCC patients. 
 
 In this project we want to study mechanotransduction as the means to achieve a more effective therapy for the patient: consequently we hope that this analysis will be of interest for pharmaceutical companies wanting to gain an insight in the biology of ccRCC to develop treatments targeting the key molecules and processes involved in it. 
 
-Eventually, provided that MeCo assessment yields consistent results, we wish to develop a methodology for the analysis of tumor samples that could be benefit clinicians by not being restricted to ccRCC only.
+Eventually, provided that MeCo assessment yields consistent results, we wish to develop a methodology for the analysis of tumor samples that could be benefit clinicians by not being restricted only to ccRCC.
 
 
 ---------------------------------------------------------------------------------------------------
-DATA PRE-PROCESSING 👩🏼‍💻🧑🏻‍💻
+DATA PRE-PROCESSING 👩🏼‍💻🧑🏻‍💻🧑🏻‍💻
 ---------------------------------------------------------------------------------------------------
-We used Gene Expression Omnibus to find gene expression data of CAFs cultured on soft and stiff substrates. For each condition we have 3 biological replicates. With DESeq2 we performed Differential Gene Expression Analysis to identify which genes are interested by mechanotransduction. To select differential expressed genes we used a Log2FoldChange of |3| and a p.adjusted value < 0.001. 
-To control for FDR, we used Benjamini-Hochberg and we removed all the genes that did not have more than 9 reads for sample. 
+We used Gene Expression Omnibus to find gene expression data of CAFs cultured on soft and stiff substrates. For each condition we have 3 biological replicates. First of all we converted all the Ensembl ID to Gene ID (GRCh38) and discarded rRNA, mitochondrial and non reliable gene annotations. Than using edgeR we performed Differential Gene Expression Analysis to identify which genes are interested by mechanotransduction. To select differential expressed genes we used a Log2FoldChange of |1| and a p.adjusted value < 0.001. While to adjust for FDR, we used Benjamini-Hochberg. 
 
 To refine even further the MeCo so we relay on pathway analysis with Metascape. 
-We selected the 5 most impactful pathways, related to the selected genes, in tumor progression and computed MeCo scores for each of those pathways: ECM MeCo, Proliferation MeCo, Antitumoral mechanisms MeCo, Inflammation MeCo and Chemotaxis MeCo. 
+We selected the 3 most impactful pathways, related to the selected genes, in tumor progression and computed MeCo scores for each of those pathways: MeCo Development, MeCo regulation (of biological process) and MeCo response (to stimulus). 
 
 ---------------------------------------------------------------------------------------------------
 MAIN DATASET 💾
@@ -51,21 +50,54 @@ MeCo scores were computed for each patient given the overlap of the previously i
 
 
 ---------------------------------------------------------------------------------------------------
-EXAMPLE CASE: ECM MeCO refined 🔎
+EXPLORATIVE ANALYSIS: 'There can only be one' ⚡️
 ---------------------------------------------------------------------------------------------------
-ECM MeCo give us an idea of the ECM stiffness and shaping. The higher the score, the closer the gene expression pattern is to a stiff substrate condition. 
-
-We can see that in older patients (60 =< years) we have a higher median than in young ones (years < 60), as expected given the aging process.
-
-But with a higher stage a lower value is observed. Given the typical progression of a tumor we would expect a stiffer substrate with a higher stage. But in ccRenal Cancer this is the opposite. So the ECM MeCo seems able to follow nicely also this trend.
-
+Using the Mann whitney U test we assed if the MeCo and its iterations (MeCo refined) were able to follow both physiological and pathological trends, like a higher stiffness due to aging and lower stiffness in higher tumoral stages due to a peculiarity of ccRCC. Eventually only the MeCo (general) and MeCo regulation (refined) were able to follow nicely those trend. 
+So we keep them for the down stream analysis. 
 
 ---------------------------------------------------------------------------------------------------
  RESEARCH PLAN 🚀
 ---------------------------------------------------------------------------------------------------
-In the next few weeks we will use the MeCo scores to asses the role of mechanotransduction via hypothesis testing, survival analysis and other powerful prediction models
+- Survival Analysis ⚕️
+- Multi class Logistic Regression 🏷
+- Mixed Effect Model 🎛
 
 
+---------------------------------------------------------------------------------------------------
+- Survival Analysis ⚕️
+---------------------------------------------------------------------------------------------------
+In the survival analysis, both MeCo and MeCo refined were highlighted as protective factors. 
+
+Cox PH model:
+We defined a Cox PH model accounting for Age, Stage, and MeCo or MeCo refined. After stratifying 
+for the stage the assumptions for the Cox PH model were satisfied and were obtain a reduction of 
+around 2.4% in the risk of death with an increase of 0.01 of the MeCo| MeCo refined score. 
+
+note: We evaluated the model using a 0.01 increase since both MeCo and MeCo refined scores range from -0.25, up to 0.50. 
+So a unitary increase would mean a leap from one extreme to the other of the MeCo scores. 
+
+Also, we used an exponential accelerated failure time model to assess the role of MeCo, 
+verifying once again the results obtained by the Cox PH models. 
+
+---------------------------------------------------------------------------------------------------
+- Multi class Logistic Regression 🏷
+---------------------------------------------------------------------------------------------------
+We also used a multi-class logistic regression model to predict the tumor stage from the age, the status, and MeCo | MeCo refined. For this task, we obtain interesting results since the MeCo and MeCo refined were meaningful variables for stages 2, 3, and 4 with consideration of the baseline (stage 1). 
+
+
+---------------------------------------------------------------------------------------------------
+- Mixed Effect Model 🎛
+---------------------------------------------------------------------------------------------------
+Also, we used logistic regression to predict the status of the patients given the age, stage, and Meco | MeCo refined. To further assess the role played by the stage variable we applied a Mixed Effect Model with a random intercept to assess if and how a given stage weight on the final result. 
+
+As expected different stages account for almost 30% of the variability of the final result. 
+
+---------------------------------------------------------------------------------------------------
+CONCLUSIONS🕵🏼‍♀️🕵🏻🕵🏻
+---------------------------------------------------------------------------------------------------
+In the end, mechanotransduction plays are relevant role in ccRCC accounting for both survival time and tumoral stage. 
+
+Validation with 'wet' lab techniques is required but we are confident that this kind of analysis can be easily extended to other types of tumors and may give a new perspective on the problem. 
 
 ---------------------------------------------------------------------------------------------------
 REFERENCES 📚

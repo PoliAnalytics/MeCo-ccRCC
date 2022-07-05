@@ -516,3 +516,15 @@ boxplot(meco_left, meco_right, names = c('Left','Right'), main='MeCo development
 # H1: Tendency of some type of MeCo development score depending on the laterality
 wilcox.test(meco_right, meco_left, paired=F, alternative='two.sided', conf.int = T)
 # 0.1 -> no significant difference
+
+# age by stage
+df6 <- data.frame(age = surv_data$age, stage = surv_data$stage)
+age_stage1 <- df6[which(df6$stage == 'stage i'),]$age
+age_stage2 <- df6[which(df6$stage == 'stage ii'),]$age
+age_stage3 <- df6[which(df6$stage == 'stage iii'),]$age
+age_stage4 <- df6[which(df6$stage == 'stage iv'),]$age
+
+median(age_stage1)
+median(age_stage2)
+median(age_stage3)
+median(age_stage4)

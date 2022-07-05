@@ -333,6 +333,16 @@ ggplot(data, aes(x = stage, y = MeCo, fill = stage)) +
   scale_fill_brewer() +
   labs(title = "MeCo distribution by stage")
 
+meco_stage1 <- data[which(data$stage == 'stage i'),]$MeCo
+meco_stage2 <- data[which(data$stage == 'stage ii'),]$MeCo
+meco_stage3 <- data[which(data$stage == 'stage iii'),]$MeCo
+meco_stage4 <- data[which(data$stage == 'stage iv'),]$MeCo
+
+median(meco_stage1)
+median(meco_stage2)
+median(meco_stage3)
+median(meco_stage4)
+
 # visualize MeCo regulation distribution by stage 
 data2 <- data.frame(MeCo_reg = surv_data$MeCo_reg, stage = surv_data$stage)
 
@@ -341,6 +351,16 @@ ggplot(data2, aes(x = stage, y = MeCo_reg, fill = stage)) +
   geom_boxplot(width = 0.07) +
   scale_fill_brewer() +
   labs(title = "MeCo regulation distribution by stage")
+
+mecoreg_stage1 <- data2[which(data2$stage == 'stage i'),]$MeCo_reg
+mecoreg_stage2 <- data2[which(data2$stage == 'stage ii'),]$MeCo_reg
+mecoreg_stage3 <- data2[which(data2$stage == 'stage iii'),]$MeCo_reg
+mecoreg_stage4 <- data2[which(data2$stage == 'stage iv'),]$MeCo_reg
+
+median(mecoreg_stage1)
+median(mecoreg_stage2)
+median(mecoreg_stage3)
+median(mecoreg_stage4)
 
 # visualize MeCo distribution by age 
 summary(age)
@@ -353,6 +373,12 @@ ggplot(data3, aes(x = age, y = MeCo, fill = age)) +
   scale_fill_brewer() +
   labs(title = "MeCo distribution by age")
 
+meco_young <- data3[which(data3$age == 'young'),]$MeCo
+meco_old <- data3[which(data3$age == 'old'),]$MeCo
+
+median(meco_young)
+median(meco_old)
+
 # visualize MeCo regulation distribution by age 
 data4 <- data.frame(MeCo_reg = surv_data$MeCo_reg, age = surv_data$agecat)
 
@@ -362,6 +388,12 @@ ggplot(data4, aes(x = age, y = MeCo_reg, fill = age)) +
   scale_fill_brewer() +
   labs(title = "MeCo regulation distribution by age")
 
+mecoreg_young <- data4[which(data4$age == 'young'),]$MeCo_reg
+mecoreg_old <- data4[which(data4$age == 'old'),]$MeCo_reg
+
+median(mecoreg_young)
+median(mecoreg_old)
+
 # age distribution in the different stages
 data5 <- data.frame(age = surv_data$age, stage = surv_data$stage)
 
@@ -370,6 +402,16 @@ ggplot(data5, aes(x = stage, y = age, fill = stage)) +
   geom_boxplot(width = 0.07) +
   scale_fill_brewer() +
   labs(title = "Age distribution by stage")
+
+age_stage1 <- data5[which(data5$stage == 'stage i'),]$age
+age_stage2 <- data5[which(data5$stage == 'stage ii'),]$age
+age_stage3 <- data5[which(data5$stage == 'stage iii'),]$age
+age_stage4 <- data5[which(data5$stage == 'stage iv'),]$age
+
+median(age_stage1)
+median(age_stage2)
+median(age_stage3)
+median(age_stage4)
 
 # MeCo distribution by status
 data6 <- data.frame(status = surv_data$status, MeCo = surv_data$MeCo)
@@ -402,6 +444,12 @@ ggplot(data8, aes(x = gender, y = MeCo, fill = gender)) +
   scale_fill_brewer() +
   labs(title = "MeCo distribution by gender")
 
+meco_female <- data8[which(data8$gender == 'female'),]$MeCo
+meco_male <- data8[which(data8$gender == 'male'),]$MeCo
+
+median(meco_female)
+median(meco_male)
+
 # MeCo regulation distribution by gender
 data9 <- data.frame(gender = surv_data$gender, MeCo_reg = surv_data$MeCo_reg)
 
@@ -410,5 +458,11 @@ ggplot(data9, aes(x = gender, y = MeCo_reg, fill = gender)) +
   geom_boxplot(width = 0.07) +
   scale_fill_brewer() +
   labs(title = "MeCo regulation distribution by gender")
+
+mecoreg_female <- data9[which(data9$gender == 'female'),]$MeCo_reg
+mecoreg_male <- data9[which(data9$gender == 'male'),]$MeCo_reg
+
+median(mecoreg_female)
+median(mecoreg_male)
 
 

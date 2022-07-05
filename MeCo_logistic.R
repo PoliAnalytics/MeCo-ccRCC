@@ -43,7 +43,7 @@ x   <- seq(min(surv_data$age),max(surv_data$age),10)
 mid <- c((x[-1]+x[-7])/2)
 
 # Divide the data in classes
-GRAGE <- cut(surv_data$age, breaks=x)   # cut is a very convenient command to 
+GRAGE <- cut(surv_data$age, breaks=x)    
 tab <- table(GRAGE)
 tab
 
@@ -175,7 +175,7 @@ exp(0.01*cis[2,])
 
 # confidence intervals for the prediction of either logit(p|AGE) or p|AGE:
 x.new=0.2
-pred <- predict(logistic_MeCohReg, data.frame(MeCo_reg=x.new), se=TRUE) 
+pred <- predict(logistic_MeCoReg, data.frame(MeCo_reg=x.new), se=TRUE) 
 
 # The logit(p|MeCo_reg=0.2) is:
 pred$fit 
@@ -461,3 +461,5 @@ exp(0.01*coef(mult_logistic_stage))
 # for stage 4 both status and MeCo regulation have an effect: being dead increases the probability
 # of being of stage 4, with respect to stage 1, of 22 times. 0.01 increases of MeCo regulation
 # decreases the probability of being of stage 4, with respect to to 1, of 4.3%
+
+

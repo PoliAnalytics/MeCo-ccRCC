@@ -424,6 +424,12 @@ ggplot(data6, aes(x = status, y = MeCo, fill = status)) +
   scale_fill_brewer() +
   labs(title = "MeCo distribution by status")
 
+meco_alive <- data6[which(data6$status == 0),]$MeCo
+meco_dead <- data6[which(data6$status == 1),]$MeCo
+
+median(meco_alive)
+median(meco_dead)
+
 # MeCo regulation distribution by status
 data7 <- data.frame(status = surv_data$status, MeCo_reg = surv_data$MeCo_reg)
 
@@ -434,6 +440,12 @@ ggplot(data7, aes(x = status, y = MeCo_reg, fill = status)) +
   geom_boxplot(width = 0.07) +
   scale_fill_brewer() +
   labs(title = "MeCo regulation distribution by status")
+
+mecoreg_alive <- data7[which(data7$status == 0),]$MeCo_reg
+mecoreg_dead <- data7[which(data7$status == 1),]$MeCo_reg
+
+median(mecoreg_alive)
+median(mecoreg_dead)
 
 # MeCo distribution by gender
 data8 <- data.frame(gender = surv_data$gender, MeCo = surv_data$MeCo)

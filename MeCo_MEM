@@ -138,7 +138,7 @@ qqline(unlist(ranef(log_MEM)), col='red', lwd=2)
 shapiro.test(unlist(ranef(log_MEM)))
 # Random Effects are normally distributed
 
-# 95% CIs
+# Fixed effects coefficients and their 95% CI
 alpha <- 0.05
 se <- sqrt(diag(vcov(log_MEM))) #standard errors
 # table of estimates with 95% CI using errors we obtained above
@@ -149,7 +149,7 @@ round(CI_betas,3)
 # age: CI [0.028  0.067] -> it increases the probability of death in a significant way
 # MeCo: CI [-5.547 -0.207] -> it decreases the probability of death in a significant way
 
-# To get to the odds and their 95% CI, we can take exponential of beta estimates:
+# To get to the odds of the fixed effects and their 95% CI, we can take exponential of beta estimates:
 CI_OR_age <- exp(CI_betas)
 CI_OR_meco <- exp(0.01*CI_betas)
 round(CI_OR_age,3)
@@ -196,7 +196,7 @@ qqline(unlist(ranef(log_MEM_reg)), col='red', lwd=2)
 shapiro.test(unlist(ranef(log_MEM_reg)))
 # Random Effects are normally distributed
 
-# 95% CIs
+# Fixed effects coefficients and their 95% CI
 alpha <- 0.05
 se <- sqrt(diag(vcov(log_MEM_reg))) #standard errors
 # table of estimates with 95% CI using errors we obtained above
@@ -207,7 +207,7 @@ round(CI_betas,3)
 # age: CI [0.028  0.067] -> it increases the probability of death in a significant way
 # MeCo: CI [-4.411 -0.195] -> it decreases the probability of death in a significant way
 
-# To get to the odds and their 95% CI, we can take exponential of beta estimates:
+# To get to the odds of the fixed effects and their 95% CI, we can take exponential of beta estimates:
 CI_OR_age <- exp(CI_betas)
 CI_OR_meco <- exp(0.01*CI_betas)
 round(CI_OR_age,3)

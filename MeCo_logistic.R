@@ -118,21 +118,22 @@ points(x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se),pch='-',col='red')
 # fit the logistic model by MeCo (non refined)
 logistic_MeCo <- glm(status~ MeCo, family=binomial(link=logit), data = surv_data)
 summary(logistic_MeCo) 
-exp(logistic_MeCo$coefficients)
-# MeCo has a significant effect on the probability of death: its unitary increase
-# decreases the probability of death of 94%
 
-# OR for an age increment of 0.1 of MeCo score
-exp(0.1*coef(logistic_MeCo)[2])   
-# the probability of death in case of 0.1 increment of MeCo score is 25% lower
+# since the MeCo score varies between -0.3449 and 0.4179 talking about a unitary increase doesn't
+# make sense but we have to look at the effect of an increase of 0.01 of the score since it
+# is much more plausible 
+
+exp(0.01*logistic_MeCo$coefficients)
+# MeCo has a significant effect on the probability of death: its 0.01 increase
+# decreases the probability of death of 2.9%
 
 # confidence intervals for the coefficients as:
 cis <- confint.default(logistic_MeCo)
 cis
 
-# CI for the OR of 0.1 of MeCo score
-exp(0.1*cis[2,])
-# the probability of death in case of 0.1 increment decreases between the 6% and the 40%
+# CI for the OR of 0.01 of MeCo score
+exp(0.01*cis[2,])
+# the probability of death in case of 0.01 increment decreases between the 0.01% and the 5%
 
 # confidence intervals for the prediction of either logit(p|AGE) or p|AGE:
 x.new=0.2
@@ -155,21 +156,22 @@ c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standar
 # fit the logistic model by MeCo_reg
 logistic_MeCoReg <- glm(status~ MeCo_reg, family=binomial(link=logit), data = surv_data)
 summary(logistic_MeCoReg) 
-exp(logistic_MeCoReg$coefficients)
-# Meco regulation has a significant effect on the probability of death: its unitary increase 
-# decreases the probability of death of 96%
 
-# OR for an age increment of 0.1 of MeCo regulation score
-exp(0.1*coef(logistic_MeCoReg)[2])   
-# the probability of death in case of 0.1 increment of MeCo regulation score is 27% lower
+# since the MeCo regulation score varies between -0.62646 and 0.45316 talking about a unitary increase doesn't
+# make sense but we have to look at the effect of an increase of 0.01 of the score since it
+# is much more plausible 
+
+exp(0.01*logistic_MeCoReg$coefficients)
+# Meco regulation has a significant effect on the probability of death: its 0.01 increase 
+# decreases the probability of death of 3.2%
 
 # confidence intervals for the coefficients as:
 cis <- confint.default(logistic_MeCoReg)
 cis
 
-# CI for the OR of 0.1 of MeCo regulation score
-exp(0.1*cis[2,])
-# the probability of death in case of 0.1 increment decreases between the 13% and the 40%
+# CI for the OR of 0.01 of MeCo regulation score
+exp(0.01*cis[2,])
+# the probability of death in case of 0.01 increment decreases between the 0.1% and the 5%
 
 # confidence intervals for the prediction of either logit(p|AGE) or p|AGE:
 x.new=0.2
@@ -192,15 +194,18 @@ c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standar
 # fit the logistic model by age, stage, MeCo
 log1 <- glm(status~ age+stage+MeCo, family=binomial(link=logit), data = surv_data)
 summary(log1) 
+
 exp(log1$coefficients)
 # being  of stage 2 with respect to stage 1 has no effect on the probability of death.
 # age is a significant risk factor: its unitary increase increases the probability of death of 4.9%
 # being of stage 3 is a significant risk factor that increases the probability of death of 2.9 times
 # with respect to being of stage 1;
 # being of stage 4 is a significant risk factor that increases the probability of death of 24 times
-# with respect to being of stage 1;
-# MeCo is a significant protective factor: its unitary increase decreases the probability of death 
-# of 94%
+# with respect to being of stage 1.
+
+exp(0.01*-2.851267)
+# MeCo is a significant protective factor: its 0.01 increase decreases the probability of death 
+# of 2.9%
 
 anova(log1,logistic_MeCo, test='LRT')
 # Since the p-value of LRT test is low, the full model- with age, stage and MeCo as predictors - is more
@@ -209,15 +214,18 @@ anova(log1,logistic_MeCo, test='LRT')
 # fit the logistic model by age, stage, meco_reg
 log2 <- glm(status~ age+stage+MeCo_reg, family=binomial(link=logit), data = surv_data)
 summary(log2) 
+
 exp(log2$coefficients)
 # being  of stage 2 with respect to stage 1 has no effect on the probability of death.
 # age is a significant risk factor: its unitary increase increases the probability of death of 4.9%
 # being of stage 3 is a significant risk factor that increases the probability of death of 2.9 times
 # with respect to being of stage 1;
 # being of stage 4 is a significant risk factor that increases the probability of death of 22.7 times
-# with respect to being of stage 1;
-# MeCo regulation is a significant protective factor: its unitary increase decreases the probability of death 
-# of 90%
+# with respect to being of stage 1.
+
+exp(0.01*-2.244392)
+# MeCo regulation is a significant protective factor: its 0.01 increase decreases the probability of death 
+# of 2.3%
 
 anova(log2,logistic_MeCoReg,test='LRT')
 # Since the p-value of LRT test is low, the full model- with age, stage and MeCo regulation 
@@ -445,10 +453,11 @@ p
 exp(coef(mult_logistic_stage))
 # the only feature that affects being of stage 2 is status: being dead increases the probability
 # of being of stage 2, with respect to stage 1, of 53%
+exp(0.01*coef(mult_logistic_stage))
 # for stage 3 both status, age and MeCo regulation have an effect: being dead increases the probability
 # of being of stage 3, with respect to stage 1, of 2.9 times. Unitary increases of age increases the probability
-# of being of stage 3, with respect to 1, of 2.5%, unitary increases of MeCo regulation decreases the probability
-# of being of stage 3, with respect to 1, of 99%
+# of being of stage 3, with respect to 1, of 2.5%, 0.01 increases of MeCo regulation decreases the probability
+# of being of stage 3, with respect to 1, of 4.3%
 # for stage 4 both status and MeCo regulation have an effect: being dead increases the probability
-# of being of stage 4, with respect to stage 1, of 22 times. Unitary increases of MeCo regulation
-# decreases the probability of being of stage 4, with respect to to 1, of 99%
+# of being of stage 4, with respect to stage 1, of 22 times. 0.01 increases of MeCo regulation
+# decreases the probability of being of stage 4, with respect to to 1, of 4.3%

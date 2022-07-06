@@ -37,7 +37,7 @@ exp(logistic_age$coefficients)
 # of 3.7%
 
 # Define the vector x of limits for the AGE classes
-x   <- seq(min(surv_data$age),max(surv_data$age),10)
+x   <- seq(min(surv_data$age),max(surv_data$age),1)
 
 # Central point in the intervals of ages
 mid <- c((x[-1]+x[-7])/2)
@@ -127,6 +127,30 @@ exp(0.01*logistic_MeCo$coefficients)
 # MeCo has a significant effect on the probability of death: its 0.01 increase
 # decreases the probability of death of 2.9%
 
+# Define the vector x of limits for the MeCo classes
+x <- seq(min(surv_data$MeCo),max(surv_data$MeCo),0.01)
+
+# Central point in the intervals of MeCo
+mid <- c((x[-1]+x[-77])/2)
+
+# Divide the data in classes
+GRAGE <- cut(surv_data$MeCo, breaks=x)    
+tab <- table(GRAGE)
+tab
+
+y <- tapply(surv_data$status, GRAGE, mean)
+y
+
+plot(surv_data$MeCo, surv_data$status, pch=19, col=surv_data$status+1, ylim=c(0,1), xlab = 'MeCo',ylab = 'Status', main='Status by MeCo')
+abline(v=x, col='grey', lty=2)
+points(mid, y, col="blue", pch=3, lwd=2)
+
+d <- data.frame(MeCo =surv_data$MeCo, fitted=logistic_MeCo$fitted)
+s <- arrange(d, MeCo)
+
+lines(s$MeCo, s$fitted, col='blue')
+
+
 # confidence intervals for the coefficients as:
 cis <- confint.default(logistic_MeCo)
 cis
@@ -135,11 +159,11 @@ cis
 exp(0.01*cis[2,])
 # the probability of death in case of 0.01 increment decreases between the 0.01% and the 5%
 
-# confidence intervals for the prediction of either logit(p|AGE) or p|AGE:
-x.new=0.2
+# confidence intervals for the prediction of either logit(p|MeCo) or p|MeCo:
+x.new=0.05
 pred <- predict(logistic_MeCo, data.frame(MeCo=x.new), se=TRUE) 
 
-# The logit(p|MeCo=0.2) is:
+# The logit(p|MeCo=0.05) is:
 pred$fit 
 
 # its standard error
@@ -150,7 +174,31 @@ alpha <- .05
 c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standard_deviation
   'Center'=pred$fit,
   'Up'=pred$fit+qnorm(1-alpha/2)*pred$se)
-# CI: [-0.8529719, -0.4675687]
+# CI: [-0.6588410, 0.2059039]
+
+par(mfrow=c(1,2))
+# Representation in the space (MeCo,logit(p))
+plot(surv_data$MeCo, coef(logistic_MeCo)[1]+coef(logistic_MeCo)[2]*surv_data$MeCo, type='l',ylab='logit(p)',xlab='MeCo',
+     main="CI in the space (MeCo,logit(p))")
+points(x.new,pred$fit,pch=19)
+segments(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,
+         x.new,pred$fit+qnorm(1-alpha/2)*pred$se, col='red')
+points(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+points(x.new,pred$fit+qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+
+# Representation in the space (MeCo,p)
+gl <- binomial(link=logit)    # link function
+
+d <- data.frame(MeCo =surv_data$MeCo, lpred=gl$linkinv(logistic_MeCo$linear.predictors))
+s <- arrange(d, MeCo)
+
+plot(s$MeCo, s$lpred, type='l',ylab='p',xlab='MeCo',
+     main="CI in the space (MeCo,p)")
+points(x.new,gl$linkinv(pred$fit),pch=19)
+segments(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),
+         x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se), col='red')
+points(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),pch='-',col='red')
+points(x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se),pch='-',col='red')
 
 
 # fit the logistic model by MeCo_reg
@@ -165,6 +213,30 @@ exp(0.01*logistic_MeCoReg$coefficients)
 # Meco regulation has a significant effect on the probability of death: its 0.01 increase 
 # decreases the probability of death of 3.2%
 
+# Define the vector x of limits for the MeCo_reg classes
+x <- seq(min(surv_data$MeCo_reg),max(surv_data$MeCo_reg),0.01)
+
+# Central point in the intervals of MeCo_reg
+mid <- c((x[-1]+x[-108])/2)
+
+# Divide the data in classes
+GRAGE <- cut(surv_data$MeCo_reg, breaks=x)    
+tab <- table(GRAGE)
+tab
+
+y <- tapply(surv_data$status, GRAGE, mean)
+y
+
+plot(surv_data$MeCo_reg, surv_data$status, pch=19, col=surv_data$status+1, ylim=c(0,1), xlab = 'MeCo_reg',ylab = 'Status', main='Status by MeCo regulation')
+abline(v=x, col='grey', lty=2)
+points(mid, y, col="blue", pch=3, lwd=2)
+
+d <- data.frame(MeCo_reg =surv_data$MeCo_reg, fitted=logistic_MeCoReg$fitted)
+s <- arrange(d, MeCo_reg)
+
+lines(s$MeCo_reg, s$fitted, col='blue')
+
+
 # confidence intervals for the coefficients as:
 cis <- confint.default(logistic_MeCoReg)
 cis
@@ -173,11 +245,11 @@ cis
 exp(0.01*cis[2,])
 # the probability of death in case of 0.01 increment decreases between the 0.1% and the 5%
 
-# confidence intervals for the prediction of either logit(p|AGE) or p|AGE:
-x.new=0.2
+# confidence intervals for the prediction of either logit(p|MeCo_reg) or p|MeCo_reg:
+x.new=-0.05
 pred <- predict(logistic_MeCoReg, data.frame(MeCo_reg=x.new), se=TRUE) 
 
-# The logit(p|MeCo_reg=0.2) is:
+# The logit(p|MeCo_reg=-0.05) is:
 pred$fit 
 
 # its standard error
@@ -188,7 +260,31 @@ alpha <- .05
 c('Inf'=pred$fit-qnorm(1-alpha/2)*pred$se, ## predicted value - quantile*standard_deviation
   'Center'=pred$fit,
   'Up'=pred$fit+qnorm(1-alpha/2)*pred$se)
-# CI: [-1.4098515, -0.8314904]
+# CI: [-0.61753718, -0.02623533]
+
+par(mfrow=c(1,2))
+# Representation in the space (MeCo_reg,logit(p))
+plot(surv_data$MeCo_reg, coef(logistic_MeCoReg)[1]+coef(logistic_MeCoReg)[2]*surv_data$MeCo_reg, type='l',ylab='logit(p)',xlab='MeCo_reg',
+     main="CI in the space (MeCo_reg,logit(p))")
+points(x.new,pred$fit,pch=19)
+segments(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,
+         x.new,pred$fit+qnorm(1-alpha/2)*pred$se, col='red')
+points(x.new,pred$fit-qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+points(x.new,pred$fit+qnorm(1-alpha/2)*pred$se,pch='-',col='red')
+
+# Representation in the space (MeCo_reg,p)
+gl <- binomial(link=logit)    # link function
+
+d <- data.frame(MeCo_reg =surv_data$MeCo_reg, lpred=gl$linkinv(logistic_MeCoReg$linear.predictors))
+s <- arrange(d, MeCo_reg)
+
+plot(s$MeCo_reg, s$lpred, type='l',ylab='p',xlab='MeCo_reg',
+     main="CI in the space (MeCo_reg,p)")
+points(x.new,gl$linkinv(pred$fit),pch=19)
+segments(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),
+         x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se), col='red')
+points(x.new,gl$linkinv(pred$fit-qnorm(1-alpha/2)*pred$se),pch='-',col='red')
+points(x.new,gl$linkinv(pred$fit+qnorm(1-alpha/2)*pred$se),pch='-',col='red')
 
 
 # fit the logistic model by age, stage, MeCo
@@ -461,5 +557,3 @@ exp(0.01*coef(mult_logistic_stage))
 # for stage 4 both status and MeCo regulation have an effect: being dead increases the probability
 # of being of stage 4, with respect to stage 1, of 22 times. 0.01 increases of MeCo regulation
 # decreases the probability of being of stage 4, with respect to to 1, of 4.3%
-
-

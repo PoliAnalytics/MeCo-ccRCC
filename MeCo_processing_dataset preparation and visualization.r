@@ -1,8 +1,6 @@
 # Hi 👋, this is our code for computing the MeCo refined scores. 
 # Please feel free to give us feedbacks! 
 
--------------------------------------------------------------------------------------------------------------------------------------------
-
 library(readxl)
 library(edgeR)
 
@@ -59,7 +57,7 @@ group <- as.factor(c('soft', 'soft', 'soft', 'stiff', 'stiff', 'stiff'))
 y$samples$group <- group
 y
 
-y$samples$dex <- as.factor(c(rep(control, 3), rep(treatment, 3)))
+y$samples$dex <- as.factor(c(rep('control', 3), rep('treatment', 3)))
 y
 
 keep.exprs <- filterByExpr(y, group=group)
@@ -100,8 +98,8 @@ table <- table[-(which(table$logCPM<0)),]
 
 
 # Load prototypical information about the patients and their gene expression profile
-pheno_data <- TCGA.KIRC.GDC_phenotype
-geno_data <- TCGA.KIRC.htseq_fpkm
+pheno_data <- read.delim('TCGA-KIRC.GDC_phenotype.tsv')
+geno_data <- read.delim('TCGA-KIRC.htseq_fpkm.tsv')
 
 # Define the sequenced patients from the genomic data set
 sequenced_patients <- colnames(geno_data)

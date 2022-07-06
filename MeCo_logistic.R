@@ -301,7 +301,7 @@ exp(log1$coefficients)
 
 exp(0.1*-2.851267)
 # MeCo is a significant protective factor: its 0.1 increase decreases the probability of death 
-# of 255%
+# of 25%
 
 anova(log1,logistic_MeCo, test='LRT')
 # Since the p-value of LRT test is low, the full model- with age, stage and MeCo as predictors - is more

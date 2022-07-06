@@ -249,7 +249,7 @@ ggforest(cox.meco2, data=surv_data)
 # being of stage 4 increases the risk of death of 6.44 times with respect to being if stage 1
 
 # since the MeCo regulation score varies between -0.62646 and 0.45316 talking about a unitary increase doesn't
-# make sense but we have to look at the effect of an increase of 0.01 of the score since it
+# make sense but we have to look at the effect of an increase of 0.1 of the score since it
 # is much more plausible 
 
 exp(-2.011810*0.1)
